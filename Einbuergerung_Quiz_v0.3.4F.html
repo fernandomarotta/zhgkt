@@ -1,0 +1,3969 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einbürgerung Quiz</title>
+    <style>
+        :root {
+            --primary: #005A9C;
+            --primary-hover: #00407A;
+            --bg-color: #f4f7f6;
+            --container-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #dddddd;
+            --correct-bg: #d4edda;
+            --correct-border: #c3e6cb;
+            --correct-text: #155724;
+            --wrong-bg: #f8d7da;
+            --wrong-border: #f5c6cb;
+            --wrong-text: #721c24;
+            --option-hover: #e9ecef;
+        }
+
+        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background-color: var(--container-bg); max-width: 800px; width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;}
+
+        /* QUIZ SCREEN */
+        #quiz-screen { display: none; }
+
+        /* Controls */
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); align-items: center; }
+        button, .btn { background-color: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s; font-size: 14px;}
+        button:hover:not(:disabled), .btn:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        input[type="number"] { padding: 9px; border: 1px solid var(--border-color); border-radius: 5px; width: 80px; }
+
+        /* Dropdowns */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-btn { background: white; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .dropdown-content { display: none; position: absolute; background: white; min-width: 200px; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 10; border: 1px solid var(--border-color); border-radius: 5px; max-height: 300px; overflow-y: auto; }
+        .dropdown-content.show { display: block; }
+        .dropdown-content label { display: block; padding: 10px 15px; cursor: pointer; font-size: 14px; }
+        .dropdown-content label:hover { background-color: #f9f9f9; }
+
+        /* Question UI */
+        .status-bar { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px; }
+        .question-text { font-size: 1.4rem; font-weight: 600; margin-bottom: 15px; line-height: 1.4;}
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { background: white; border: 2px solid var(--border-color); color: var(--text-main); padding: 15px; border-radius: 8px; transition: all 0.2s; cursor: pointer; text-align: left; font-size: 1rem;}
+        .option-btn:hover:not(:disabled) { background: var(--option-hover); }
+        .option-btn:disabled { cursor: default; }
+        .option-btn.correct { background: var(--correct-bg); border-color: var(--correct-border); color: var(--correct-text); font-weight: bold;}
+        .option-btn.wrong { background: var(--wrong-bg); border-color: var(--wrong-border); color: var(--wrong-text); }
+        .feedback-area { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; text-align: center; font-weight: bold; }
+        .correct-msg { background-color: var(--correct-bg); color: var(--correct-text); border: 1px solid var(--correct-border); }
+        .wrong-msg { background-color: var(--wrong-bg); color: var(--wrong-text); border: 1px solid var(--wrong-border); }
+        
+        /* Navigation */
+        .nav-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);}
+        
+        /* Wrong Navigation */
+        .nav-container-wrong { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .wrong-nav-btn { background-color: #fff; color: var(--wrong-text); border: 2px solid var(--wrong-border); }
+        .wrong-nav-btn:hover:not(:disabled) { background-color: var(--wrong-bg); }
+
+        /* Stats Area */
+        .stats-area { background: #f8f9fa; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; margin-top: 10px;}
+        .stats-area h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: var(--primary);}
+        .stats-row { display: flex; justify-content: center; gap: 20px; font-weight: bold; margin-bottom: 15px; flex-wrap: wrap;}
+        .stat-item { padding: 5px 10px; border-radius: 5px; }
+        .stat-right { color: var(--correct-text); background: var(--correct-bg); }
+        .stat-wrong { color: var(--wrong-text); background: var(--wrong-bg); }
+        .reset-btn { background-color: #dc3545; font-size: 0.9rem;}
+        .reset-btn:hover:not(:disabled) { background-color: #c82333; }
+
+        /* Wrong Answers List */
+        details.wrong-answers { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-top: 15px; text-align: left; }
+        summary { font-weight: bold; cursor: pointer; color: var(--wrong-text); outline: none; user-select: none; }
+        .wrong-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .wrong-pill { background: var(--wrong-bg); color: var(--wrong-text); border: 1px solid var(--wrong-border); padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; font-weight: bold;}
+        .wrong-pill:hover { background: #f1b0b7; }
+
+        /* Footer */
+        .app-footer { text-align: center; font-size: 0.8rem; color: #999; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen">
+        <div class="controls">
+            <div class="dropdown">
+                <button class="dropdown-btn" onclick="toggleDropdown('topic-dropdown')">Thema filtern ▼</button>
+                <div id="topic-dropdown" class="dropdown-content"></div>
+            </div>
+            <div class="dropdown">
+                <button class="dropdown-btn" onclick="toggleDropdown('area-dropdown')">Ebene filtern ▼</button>
+                <div id="area-dropdown" class="dropdown-content"></div>
+            </div>
+            <div style="margin-left: auto;">
+                <input type="number" id="jump-input" placeholder="ID" min="1">
+                <button onclick="jumpToQuestion()">Gehe zu</button>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="question-counter"></span>
+            <span id="question-tags" style="font-weight:bold; color: var(--primary);"></span>
+            <span>ID: <span id="global-id">0</span></span>
+        </div>
+
+        <div class="question-box">
+            <div id="question-text" class="question-text"></div>
+            <div id="image-container"></div>
+            <div class="options">
+                <button class="option-btn" id="btn-a" onclick="checkAnswer('a')"></button>
+                <button class="option-btn" id="btn-b" onclick="checkAnswer('b')"></button>
+                <button class="option-btn" id="btn-c" onclick="checkAnswer('c')"></button>
+                <button class="option-btn" id="btn-d" onclick="checkAnswer('d')"></button>
+            </div>
+        </div>
+
+        <div id="feedback" class="feedback-area"></div>
+        
+        <div class="nav-container">
+            <button id="prev-btn" onclick="prevQuestion()">&larr; Zurück</button>
+            <button onclick="getRandomQuestion()">Zufällige Frage</button>
+            <button id="next-btn" onclick="nextQuestion()">Nächste Frage &rarr;</button>
+        </div>
+
+        <!-- WRONG QUESTION NAVIGATION -->
+        <div class="nav-container-wrong" id="wrong-nav-container" style="display: none;">
+            <button id="prev-wrong-btn" class="wrong-nav-btn" onclick="prevWrongQuestion()">&larr; Vorherige Falsche</button>
+            <button class="wrong-nav-btn" onclick="getRandomWrongQuestion()">Zufällige Falsche</button>
+            <button id="next-wrong-btn" class="wrong-nav-btn" onclick="nextWrongQuestion()">Nächste Falsche &rarr;</button>
+        </div>
+
+        <div class="stats-area">
+            <h3>Ihre Statistiken</h3>
+            <div class="stats-row">
+                <div class="stat-item">Gesamt: <span id="stat-total">0</span></div>
+                <div class="stat-item stat-right">Richtig: <span id="stat-right">0</span></div>
+                <div class="stat-item stat-wrong">Falsch: <span id="stat-wrong">0</span></div>
+                <div class="stat-item">Quote: <span id="stat-percent">0</span>%</div>
+            </div>
+            <button class="reset-btn" onclick="resetStats()">Statistiken zurücksetzen</button>
+
+            <details class="wrong-answers" id="wrong-answers-details">
+                <summary>Falsch beantwortete Fragen (<span id="wrong-count">0</span>)</summary>
+                <div id="wrong-pills" class="wrong-pills">
+                    <!-- Pills injected by JS -->
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- FOOTER VERSION -->
+    <div class="app-footer">v<span id="app-version"></span></div>
+</div>
+
+<script>
+    // --- GLOBAL VARIABLES, DATA & VERSION ---
+    const APP_VERSION = "0.3.4F";
+    const quizData = [
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist neutral. Was heisst das?",
+        "Option A": "Sie unterzeichnet keine internationalen Verträge.",
+        "Option B": "Sie schliesst nur mit Staaten Verträge, die nicht in Kriege verwickelt sind.",
+        "Option C": "Sie mischt sich nicht in bewaffnete Konflikte anderer Staaten ein.",
+        "Option D": "Sie will als Transitland wirtschaftlich unabhängig sein.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine Grenzgängerin oder ein Grenzgänger?",
+        "Option A": "eine Person, die in der Schweiz arbeitet und im Ausland wohnt",
+        "Option B": "eine Person, die nicht im gleichen Kanton wohnt und arbeitet",
+        "Option C": "Schweizer Handelsware, die ins Ausland exportiert wird",
+        "Option D": "Schweizer Handelsware, die vom Ausland in die Schweiz importiert wird",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Confoederatio Helvetica ...",
+        "Option A": "ist der Name einer Schweizer Schokolade.",
+        "Option B": "ist der lateinische Name für die Schweizer Eidgenossenschaft.",
+        "Option C": "ist der Name des ersten Parlaments der Schweiz.",
+        "Option D": "ist eine Fraktion des Parlaments.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist ein Departement der Bundesverwaltung?",
+        "Option A": "Ernährungsdepartement",
+        "Option B": "Natur- und Klimadepartement",
+        "Option C": "Schul- und Weiterbildungsdepartement",
+        "Option D": "Justiz- und Polizeidepartement",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Zwischen den Mitgliedern des Bundesrats gilt das Kollegialitätsprin­ zip. Was heisst das?",
+        "Option A": "Die Mitglieder des Bundesrates müssen sich gut kennen.",
+        "Option B": "Jeder Bundesrat vertritt seine eigenen politischen Meinungen.",
+        "Option C": "Alle Mitglieder müssen Entscheide des Bundesrates nach aussen gleich vertre­",
+        "Option D": "Der Bundesrat Entscheidungen mit Abstimmung.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Können die Stimmbürgerinnen und Stimmbürger ein neues Gesetz stoppen?",
+        "Option A": "Ja - mit einer Initiative",
+        "Option B": "Nein - nur der Bundesrat kann Gesetze ändern",
+        "Option C": "Nein - nur der Nationalrat kann Gesetze ändern",
+        "Option D": "Ja - mit einem Referendum",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was macht der Bundeskanzler oder die Bundeskanzlerin der Schweiz?",
+        "Option A": "den Bundesrat unterstützen",
+        "Option B": "die Schweiz regieren",
+        "Option C": "den Bundesrat wählen",
+        "Option D": "Gesetze machen",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was bedeutet bei Abstimmungen «Ständemehr»?",
+        "Option A": "Mehrheit aller Stimmen",
+        "Option B": "Mehrheit der Kantone",
+        "Option C": "Mehrheit der Stimmen nach Sprachregionen der Schweiz",
+        "Option D": "Mehrheit in den vorausgegangenen Meinungsumfragen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche politischen Rechte haben Schweizerinnen und Schweizer, die im Ausland leben?",
+        "Option A": "Sie dürfen an Abstimmungen und Wahlen teilnehmen, wenn sie in der Schweiz",
+        "Option B": "Sie verlieren alle politischen Rechte in der Schweiz.",
+        "Option C": "Sie können an nationalen Abstimmungen und Wahlen teilnehmen, ohne deswe­",
+        "Option D": "Sie dürfen sich im Gastland in keiner Weise politisch engagieren.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer in der Schweiz wählen und abstimmen will, …",
+        "Option A": "muss das Schweizer Bürgerrecht haben.",
+        "Option B": "muss einen Computer haben.",
+        "Option C": "muss in der Schweiz geboren sein.",
+        "Option D": "muss mehr Steuern zahlen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine Partei?",
+        "Option A": "ein Zusammenschluss von Menschen aus der gleichen Stadt oder dem gleichen",
+        "Option B": "ein Zusammenschluss von Menschen mit ähnlichen politischen Zielen",
+        "Option C": "ein Zusammenschluss von Menschen mit unterschiedlichen Weltanschauungen",
+        "Option D": "ein Zusammenschluss von Nationalräten oder Ständeräten, um die Mehrheit zu",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine Aufgabe des Bundes?",
+        "Option A": "Wasserversorgung",
+        "Option B": "Geldpolitik",
+        "Option C": "Polizeiwesen",
+        "Option D": "Organisation der Volksschule",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine Aufgabe des Bundes?",
+        "Option A": "Feuerwehr",
+        "Option B": "Begrünung von Parks",
+        "Option C": "Zoll",
+        "Option D": "Spitäler",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist ein Grundrecht in der Schweiz?",
+        "Option A": "Tierhaltung",
+        "Option B": "Meinungs- und Informationsfreiheit",
+        "Option C": "kostenloser Fernsehzugang",
+        "Option D": "WLAN-Zugang",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist ein Grundrecht in der Schweiz?",
+        "Option A": "Recht auf Waffenbesitz",
+        "Option B": "Recht auf eine Wohnung",
+        "Option C": "Recht auf einen Arbeitsplatz",
+        "Option D": "Glaubens- und Gewissensfreiheit",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Pflichten haben Einwohnerinnen und Einwohner der Schweiz?",
+        "Option A": "Sie müssen Steuern bezahlen.",
+        "Option B": "Sie müssen eine Lehre machen.",
+        "Option C": "Sie müssen ein Bankkonto haben.",
+        "Option D": "Sie müssen den Führerausweis haben.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Pflichten haben Einwohnerinnen und Einwohner der Schweiz?",
+        "Option A": "Sie müssen eine Weiterbildung machen.",
+        "Option B": "Sie müssen Mitglied einer Kirche sein.",
+        "Option C": "Sie müssen sich in der Gemeinde anmelden.",
+        "Option D": "Sie müssen ein Telefon haben.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Pflichten haben Einwohnerinnen und Einwohner der Schweiz?",
+        "Option A": "Sie müssen gegen Diebstahl versichert sein.",
+        "Option B": "Sie müssen bei einer Krankenkasse versichert sein.",
+        "Option C": "Sie müssen ein Halbtax der SBB haben.",
+        "Option D": "Sie müssen ein Haus besitzen.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was bedeutet Rechtsgleichheit?",
+        "Option A": "Alle verdienen gleich viel.",
+        "Option B": "Alle Kantone haben die gleichen Gesetze.",
+        "Option C": "Alle Menschen sind vor dem Gesetz gleich.",
+        "Option D": "Alle Menschen haben gleich lange Ferien.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie heissen die beiden «Kammern» des Schweizer Parlaments?",
+        "Option A": "Oberhaus und Unterhaus",
+        "Option B": "Senat und Kongress",
+        "Option C": "Nationalrat und Ständerat",
+        "Option D": "Fraktion und Kommission",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist …",
+        "Option A": "eine Diktatur.",
+        "Option B": "ein absolutistischer Staat.",
+        "Option C": "eine Demokratie.",
+        "Option D": "ein Fürstentum.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist ein wichtiges Merkmal der Demokratie?",
+        "Option A": "Das Volk wählt ein Parlament.",
+        "Option B": "Es regiert ein König.",
+        "Option C": "Die Menschen können frei reisen.",
+        "Option D": "Die Menschen haben ein garantiertes Grundeinkommen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Warum gibt es in einer Demokratie regelmässig Wahlen?",
+        "Option A": "Damit das Interesse für Politik geweckt wird.",
+        "Option B": "Damit das Volk die Volksvertretung bestimmen kann.",
+        "Option C": "Damit die Armen mehr Macht bekommen.",
+        "Option D": "Damit Frauen und Männer gleichmässig vertreten sind.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie heisst die Verfassung der Schweizerischen Eidgenossenschaft?",
+        "Option A": "Grundgesetz",
+        "Option B": "Verfassungsvertrag",
+        "Option C": "Bundesbrief",
+        "Option D": "Bundesverfassung",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer führt die Regierungsgeschäfte der Schweiz?",
+        "Option A": "die Parteien",
+        "Option B": "die Medien",
+        "Option C": "der Bundesrat",
+        "Option D": "die Bundesversammlung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer beschliesst auf Bundesebene neue Gesetze?",
+        "Option A": "das Bundesgericht",
+        "Option B": "die Präsidentinnen und Präsidenten der Parteien",
+        "Option C": "der Nationalrat und der Ständerat und das Volk (Referendum)",
+        "Option D": "die Bundeskanzlei",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer darf auf Bundesebene wählen und abstimmen?",
+        "Option A": "Personen, die in der Schweiz wohnen",
+        "Option B": "Schweizerinnen und Schweizer ab 18 Jahren",
+        "Option C": "Schweizerinnen und Schweizer, die nicht vorbestraft sind",
+        "Option D": "Personen, die in der Schweiz Steuern bezahlen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Ab wann sind Schweizerinnen und Schweizer auf Bundesebene stimm- und wahlberechtigt?",
+        "Option A": "ab 18 Jahren",
+        "Option B": "ab 21 Jahren",
+        "Option C": "ab 25 Jahren",
+        "Option D": "ab 16 Jahren",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was bedeutet das aktive Wahlrecht in der Demokratie?",
+        "Option A": "Man darf nur wählen und abstimmen, wenn man in einer politischen Partei aktiv",
+        "Option B": "Man kann in ein politisches Amt gewählt werden.",
+        "Option C": "Man darf wählen und abstimmen.",
+        "Option D": "Man muss beim Auszählen der Stimmen helfen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer kann auf Bundesebene in ein politisches Amt gewählt werden?",
+        "Option A": "wer eine Arbeit hat",
+        "Option B": "wer in der Schweiz lebt",
+        "Option C": "wer das Schweizer Bürgerrecht hat und volljährig ist",
+        "Option D": "wer mindestens zwei Landessprachen spricht",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie können Schweizer Bürgerinnen und Bürger auf die Gesetzgebung Einfluss nehmen?",
+        "Option A": "Sie können über Initiativen und Referenden abstimmen.",
+        "Option B": "Sie haben keine direkte Einflussmöglichkeit.",
+        "Option C": "Sie können einer Partei beitreten.",
+        "Option D": "Sie können den Bundesrat wählen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Gegen was kann man das Referendum ergreifen?",
+        "Option A": "gegen Beschlüsse des Bundesrats",
+        "Option B": "gegen Urteile des Bundesgerichts",
+        "Option C": "gegen Gesetzesvorlagen von Nationalrat und Ständerat",
+        "Option D": "gegen Massnahmen der Bundesverwaltung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Weshalb ist die Volksinitiative ein wichtiges politisches Recht der Stimmbürgerinnen und Stimmbürger? Sie können mit der Volksinitiative …",
+        "Option A": "das Parlament ausschalten.",
+        "Option B": "die Regierung abwählen.",
+        "Option C": "politische Entscheidungen rückgängig machen.",
+        "Option D": "wichtige Anliegen aus der Bevölkerung politisch durchsetzen.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie oft wählen die Stimmbürgerinnen und Stimmbürger das Bun­ desparlament?",
+        "Option A": "alle 6 Jahre",
+        "Option B": "alle 2 Jahre",
+        "Option C": "alle 4 Jahre",
+        "Option D": "alle 7 Jahre",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Bundesversammlung besteht aus 246 Mitgliedern. Wer wählt diese Mitglieder?",
+        "Option A": "die wahlberechtigten Bürgerinnen und Bürger",
+        "Option B": "die Parteien",
+        "Option C": "alle Einwohnerinnen und Einwohner der Schweiz",
+        "Option D": "eine Wahlkommission",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Über was können stimmberechtigte Bürgerinnen und Bürger in der Schweiz auf Bundesebene abstimmen?",
+        "Option A": "über Parteiprogramme",
+        "Option B": "über das Radio- und Fernsehprogramm",
+        "Option C": "über Volksinitiativen und Referenden",
+        "Option D": "über die Besetzung von Verwaltungsstellen",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist die zentrale Aufgabe der Bundesversammlung (Bundesparla­ ment)?",
+        "Option A": "Sie organisiert Wahlen und Abstimmungen.",
+        "Option B": "Sie berät und beschliesst Gesetze.",
+        "Option C": "Sie führt die Regierungsgeschäfte in der Schweiz.",
+        "Option D": "Sie fällt Gerichtsurteile in letzter Instanz.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie setzt sich die Vereinigte Bundesversammlung zusammen?",
+        "Option A": "aus den Mitgliedern des Nationalrats und Ständerats",
+        "Option B": "aus den Bundesrichterinnen und Bundesrichtern",
+        "Option C": "aus den Mitgliedern der kantonalen Regierungen",
+        "Option D": "aus den Parteipräsidentinnen und Parteipräsidenten",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Das Bundeshaus in Bern ist der Sitz …",
+        "Option A": "des Nationalmuseums.",
+        "Option B": "der Bundesversammlung (Schweizer Parlament).",
+        "Option C": "der Universität.",
+        "Option D": "des Schweizer Fernsehens.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie heisst die Exekutive in der Schweiz auf Bundesebene?",
+        "Option A": "Grosser Rat",
+        "Option B": "Generalrat",
+        "Option C": "Bundesrat",
+        "Option D": "Landrat",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer wählt die sieben Mitglieder des Bundesrats?",
+        "Option A": "die Parteipräsidentinnen und Parteipräsidenten",
+        "Option B": "die Stimmbürgerinnen und Stimmbürger in direkter Wahl",
+        "Option C": "der Rat der Ältesten",
+        "Option D": "Nationalrat und Ständerat",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Funktion haben die Parteien in einer Demokratie?",
+        "Option A": "Sie vertreten verschiedene Interessen und Anliegen der Bevölkerung.",
+        "Option B": "Sie wählen die Regierung.",
+        "Option C": "Sie kontrollieren die Medien.",
+        "Option D": "Sie vermitteln bei Streit zwischen verschiedenen Ämtern.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie viele Unterschriften braucht es für eine Volksinitiative auf Bun­ desebene?",
+        "Option A": "30'000",
+        "Option B": "100'000",
+        "Option C": "500'000",
+        "Option D": "800'000",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist die Aufgabe des Ständerates?",
+        "Option A": "Er hat nur eine repräsentative Funktion.",
+        "Option B": "Er ist die höchste juristische Instanz.",
+        "Option C": "Er vertritt vor allem die Interessen der Kantone.",
+        "Option D": "Er koordiniert die Planung der Gemeinden.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was machen Nationalrat und Ständerat gemeinsam?",
+        "Option A": "Sie entscheiden über internationale Verträge.",
+        "Option B": "Sie wählen die Mitglieder des Bundesrats und des Bundesgerichts.",
+        "Option C": "Sie entwerfen das Bundesbudget.",
+        "Option D": "Sie fällen im Bundesgericht Urteile.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie oft pro Jahr stimmt das Stimmvolk normalerweise in Bundesange­ legenheiten ab?",
+        "Option A": "5",
+        "Option B": "3",
+        "Option C": "2",
+        "Option D": "4",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer beschliesst ein Grossteil der neuen Gesetze auf Bundesebene?",
+        "Option A": "das Bundesgericht",
+        "Option B": "die Kantone",
+        "Option C": "der Nationalrat und der Ständerat",
+        "Option D": "der Bundesrat",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wann ist eine Initiative auf Bundesebene angenommen?",
+        "Option A": "Bei Ständemehr",
+        "Option B": "Bei Volksmehr",
+        "Option C": "Bei Volksmehr und Ständemehr",
+        "Option D": "Bei Volksmehr und mindestens einem Drittel der Stände",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Durch eine Volksinitiative kann …",
+        "Option A": "der National- und Ständerat abgesetzt werden.",
+        "Option B": "die Bundesverfassung geändert werden.",
+        "Option C": "das Völkerrecht geändert werden.",
+        "Option D": "der Bundesrat ausgetauscht werden.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie stimmen die meisten Stimmberechtigten ab?",
+        "Option A": "per Gang an die Urne",
+        "Option B": "per Internet",
+        "Option C": "per Telefon",
+        "Option D": "per Brief",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "An welchem Wochentag finden nationale Wahlen und Abstimmungen statt?",
+        "Option A": "Sonntag",
+        "Option B": "Mittwoch",
+        "Option C": "Montag",
+        "Option D": "Freitag",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine wichtige Aufgabe des Bundesstaats?",
+        "Option A": "Er sorgt für soziale Sicherheit.",
+        "Option B": "Er organisiert die Arbeit in Fabriken und Betrieben.",
+        "Option C": "Er garantiert günstigen Wohnraum für alle.",
+        "Option D": "Er gibt verschiedene Tageszeitungen in allen Landessprachen heraus.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine wichtige Aufgabe des Bundes?",
+        "Option A": "Er fördert die Gründung von Vereinen.",
+        "Option B": "Er unterstützt die Gründung von Firmen.",
+        "Option C": "Er sorgt für die innere und äussere Sicherheit.",
+        "Option D": "Er unterhält eigene Spitäler und Kliniken.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine wichtige Aufgabe des Bundes?",
+        "Option A": "Er finanziert die Herstellung von Autos.",
+        "Option B": "Er sorgt für den Schutz der Umwelt.",
+        "Option C": "Er bestimmt die Leitzinsen der Nationalbank.",
+        "Option D": "Er unterhält eigene Elektrizitätswerke.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche ist die Schweizer Nationalfahne?",
+        "Option A": "a)",
+        "Option B": "b)",
+        "Option C": "c)",
+        "Option D": "d)",
+        "Answer": "c", 
+        "Needs Picture": true, 
+        "Picture Files": "page_13_img_3.png, page_13_img_5.png, page_13_img_7.png, page_13_img_9.png" 
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Der Schweizer Bundesstaat besteht aus verschiedenen. . .",
+        "Option A": "Bundesländern",
+        "Option B": "Kantonen.",
+        "Option C": "Distrikten.",
+        "Option D": "Provinzen.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie viele Kantone hat der Schweizer Bundesstaat?",
+        "Option A": "12 (10 Kantone und 2 Halbkantone)",
+        "Option B": "26 (20 Kantone und 6 Halbkantone)",
+        "Option C": "34 (28 Kantone und 6 Halbkantone)",
+        "Option D": "16 (12 Kantone und 4 Halbkantone)",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie viele politische Gemeinden gibt es in der Schweiz (Stand 2021)?",
+        "Option A": "Etwa 50",
+        "Option B": "Etwa 200",
+        "Option C": "Etwa 2200",
+        "Option D": "Etwa 8000",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist ein föderalistischer Staat mit drei Staatsebenen. Was ist die unterste Ebene?",
+        "Option A": "der Kanton",
+        "Option B": "die Gemeinde",
+        "Option C": "der Bezirk",
+        "Option D": "der Bund",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist ein föderalistischer Staat mit drei Staatsebenen. Was ist die oberste Ebene?",
+        "Option A": "die Gemeinde",
+        "Option B": "der Kanton",
+        "Option C": "der Bund",
+        "Option D": "die Region",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Für was ist der Bund zuständig?",
+        "Option A": "für die Organisation der Volksschule",
+        "Option B": "für die Aussenpolitik",
+        "Option C": "für den Erlass von Bauordnungen",
+        "Option D": "für die Wahl der Kantonsrichterinnen und Kantonsrichter",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Staatsebene ist für das Militär zuständig?",
+        "Option A": "Bund",
+        "Option B": "Kanton",
+        "Option C": "Bezirk",
+        "Option D": "Gemeinde",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was sind die Landessprachen der Schweiz?",
+        "Option A": "Französisch, Italienisch, Englisch, Deutsch",
+        "Option B": "Französisch, Italienisch, Rätoromanisch, Deutsch",
+        "Option C": "Französisch, Italienisch, Dialekte der Kantone und Rätoromanisch",
+        "Option D": "Deutsch, Französisch, Italienisch",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine offizielle Landessprache in der Schweiz?",
+        "Option A": "Französisch",
+        "Option B": "Englisch",
+        "Option C": "Portugiesisch",
+        "Option D": "Spanisch",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie viele offizielle Landessprachen gibt es in der Schweiz?",
+        "Option A": "2",
+        "Option B": "3",
+        "Option C": "4",
+        "Option D": "8",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist die vierte Landessprache der Schweiz?",
+        "Option A": "Elsässisch",
+        "Option B": "Rätoromanisch",
+        "Option C": "Englisch",
+        "Option D": "Portugiesisch",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer darf in der Schweiz Gewalt gegen Menschen und Sachen ausüben (Gewaltmonopol)?",
+        "Option A": "betroffene Bürgerinnen und Bürger",
+        "Option B": "die Parteien",
+        "Option C": "die Medien",
+        "Option D": "der Staat (Polizei, Militär)",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer hat auf Bundesebene die richterliche Gewalt (Judikative)?",
+        "Option A": "die Parlamentarierinnen und Parlamentarier",
+        "Option B": "das Bundesgericht",
+        "Option C": "die Regierungen",
+        "Option D": "das Militär",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer hat auf Bundesebene die gesetzgebende Gewalt (Legislative)?",
+        "Option A": "der Bundesrat",
+        "Option B": "der Militärrat",
+        "Option C": "das Bundesparlament (Nationalrat und Ständerat)",
+        "Option D": "das Bundesgericht",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer hat auf Bundesebene die ausführende Gewalt (Exekutive)?",
+        "Option A": "der Bundesrat",
+        "Option B": "die Parteien",
+        "Option C": "das Bundesparlament (Nationalrat und Ständerat)",
+        "Option D": "das Bundesverwaltungsgericht",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was bezeichnet man häufig als vierte Gewalt im Staat?",
+        "Option A": "die Kirche",
+        "Option B": "die Verbände und Vereine",
+        "Option C": "die Medien (Zeitungen, Radio, Fernsehen)",
+        "Option D": "die Werbung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist die Aufgabe der Richterinnen und Richter?",
+        "Option A": "Sie überwachen die Verwaltung.",
+        "Option B": "Sie fällen Gerichtsurteile.",
+        "Option C": "Sie verteidigen die Angeklagten.",
+        "Option D": "Sie verfassen Gesetze.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist eine Aufgabe der Polizei?",
+        "Option A": "Sie hilft bei der Steuererklärung.",
+        "Option B": "Sie verfolgt Rechtsverletzungen.",
+        "Option C": "Sie erlässt neue Gesetze.",
+        "Option D": "Sie fällt Gerichtsurteile.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer darf Kriminelle verhaften?",
+        "Option A": "Zeuginnen und Zeugen eines Verbrechens",
+        "Option B": "der Gemeinderat",
+        "Option C": "die Polizei",
+        "Option D": "die Bürgerwehr",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was bedeutet Gewaltenteilung?",
+        "Option A": "Polizei und Militär dürfen beide Gewalt anwenden.",
+        "Option B": "Die Verteilung der Macht auf Staat und Kirche.",
+        "Option C": "Die Verteilung der Staatsgewalt auf verschiedene Staatsorgane wie Regierung,",
+        "Option D": "Die Verteilung der Macht auf den Nationalrat und den Ständerat.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist ein Rechtsstaat. Was bedeutet das?",
+        "Option A": "Auch der Staat muss sich an die Gesetze halten.",
+        "Option B": "Die Gesetze gelten nur für die Personen, die diesen Gesetzen zugestimmt ha­",
+        "Option C": "Die Gesetze gelten nur für Schweizer Bürgerinnen und Bürger.",
+        "Option D": "Die Gesetze gelten nicht für Politikerinnen und Politiker.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welches Grundrecht ist in der Bundesverfassung verankert?",
+        "Option A": "der Waffenbesitz",
+        "Option B": "die Glaubens- und Gewissensfreiheit",
+        "Option C": "die persönliche Rache",
+        "Option D": "das Recht auf ein eigenes Haus",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welches Grundrecht garantiert die Bundesverfassung?",
+        "Option A": "die Meinungsfreiheit",
+        "Option B": "das Recht auf WLAN",
+        "Option C": "das Recht auf kostenlose Aus- und Weiterbildung",
+        "Option D": "das Halten von Haustieren",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was wird durch die Glaubens- und Gewissensfreiheit garantiert?",
+        "Option A": "freie Schulwahl",
+        "Option B": "Freizeit",
+        "Option C": "Versammlungsfreiheit",
+        "Option D": "Religionsfreiheit",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Frauen und Männer sind laut Verfassung und Gesetz in der Schweiz gleichberechtigt. Was heisst das?",
+        "Option A": "Kochen ist Männersache.",
+        "Option B": "Frauen und Männer haben grundsätzlich die gleichen Rechte.",
+        "Option C": "In politischen Gremien müssen gleich viele Männer wie Frauen vertreten sein.",
+        "Option D": "Kindererziehung ist Frauensache.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist in der Schweiz verboten?",
+        "Option A": "Man darf keine falschen Behauptungen über Personen öffentlich verbreiten.",
+        "Option B": "Man darf die Regierung nicht öffentlich kritisieren.",
+        "Option C": "Man darf eine geschlossene Ehe nicht auflösen.",
+        "Option D": "Man darf nicht an Demonstrationen teilnehmen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Jemand bekommt wegen seiner Hautfarbe oder seinem Geschlecht eine Arbeitsstelle nicht. Welches Grundrecht wird damit verletzt?",
+        "Option A": "das Recht auf freie Meinungsäusserung",
+        "Option B": "die Niederlassungsfreiheit",
+        "Option C": "das Recht auf rechtsgleiche Behandlung (Diskriminierungsverbot)",
+        "Option D": "das Recht auf Bildung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welches Recht bekommen Personen erst mit der Einbürgerung?",
+        "Option A": "Sie dürfen einem Verein beitreten.",
+        "Option B": "Sie dürfen an politischen Wahlen und Abstimmungen auf Bundesebene teilneh­",
+        "Option C": "Sie dürfen eine Wohnung kaufen.",
+        "Option D": "Sie dürfen den Arbeitsplatz frei wählen.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Durch was wird der Persönlichkeits- oder Datenschutz verletzt?",
+        "Option A": "Wenn der persönliche Computer nicht genügend geschützt ist.",
+        "Option B": "Wenn eine Person auf einer öffentlichen Strasse fotografiert wird.",
+        "Option C": "Wenn eine Zeitung über eine Person berichtet.",
+        "Option D": "Wenn private Informationen über einzelne Personen ohne gesetzliche Grund­",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was verbietet die Schweizer Bundesverfassung?",
+        "Option A": "Man darf im öffentlichen Raum keine religiösen Zeichen tragen.",
+        "Option B": "Man darf keine Sammelaktionen für notleidende Menschen durchführen.",
+        "Option C": "Es darf niemand gefoltert werden.",
+        "Option D": "Man darf nicht ohne Lohn arbeiten.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welches Recht ist in der Schweizer Bundesverfassung verankert?",
+        "Option A": "Alle Menschen haben ein Recht auf gesunde und kostenlose Ernährung.",
+        "Option B": "Das persönliche Eigentum ist geschützt.",
+        "Option C": "Man darf Haustiere halten.",
+        "Option D": "Man darf kostenlos das Internet benutzen.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist in der Schweiz verboten?",
+        "Option A": "die Arbeit des Bundesrats zu kritisieren",
+        "Option B": "ohne Bewilligung Velo zu fahren",
+        "Option C": "im öffentlichen Raum ein religiöses Zeichen zu tragen",
+        "Option D": "andere Menschen wegen ihrer Herkunft oder Religion öffentlich zu beschimpfen",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wer muss in der Schweiz Militärdienst oder Zivilschutzdienst leisten?",
+        "Option A": "junge Männer mit Schweizer Bürgerrecht",
+        "Option B": "Frauen und Männer im Alter von 20 Jahren, die mindestens 10 Jahre in der",
+        "Option C": "Militärdienst ist für alle freiwillig",
+        "Option D": "junge Frauen und Männer mit einem technischen oder medizinischen Beruf",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Zwei Jugendliche werden wegen ihrer dunklen Hautfarbe nicht ins Schwimmbad hineingelassen. Gegen welches Grundrecht verstösst das?",
+        "Option A": "gegen die freie Sportbetätigung",
+        "Option B": "gegen das Diskriminierungsverbot",
+        "Option C": "gegen die Meinungsfreiheit",
+        "Option D": "gegen die Versammlungsfreiheit",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Pflicht gilt in der Schweiz nur für Männer?",
+        "Option A": "Männer müssen bis zu einem bestimmten Alter Militärdienst oder Zivilschutz­",
+        "Option B": "Männer müssen bei Bedarf ein politisches Amt übernehmen.",
+        "Option C": "Männer müssen für den Unterhalt der Familie sorgen.",
+        "Option D": "Männer müssen mehr Steuern und Krankenkassenprämien bezahlen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was ist in einem Rechtsstaat verboten?",
+        "Option A": "Gesetze zu kritisieren",
+        "Option B": "die Arbeit von demokratisch gewählten Behörden in Frage zu stellen",
+        "Option C": "Personen grundlos zu verhaften und einzusperren",
+        "Option D": "einer religiösen Gruppierung beizutreten",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Was geschieht in der Schweiz, wenn jemand eine Straftat begeht?",
+        "Option A": "Wer gegen ein Gesetz verstossen hat, wird bestraft.",
+        "Option B": "Wer Opfer eines Verbrechens geworden ist, darf sich selber rächen.",
+        "Option C": "Wer sich selbst anzeigt, bleibt straffrei.",
+        "Option D": "Die Opfer eines Verbrechens können zwischen verschiedenen Strafen wählen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Welche Strafe verbietet die Bundesverfassung?",
+        "Option A": "eine Gefängnisstrafe",
+        "Option B": "eine Geldstrafe",
+        "Option C": "die Todesstrafe",
+        "Option D": "gemeinnützige Arbeit",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "In der Schweiz gibt es verschiedene Gesetze. Welches regelt das Mie­ ten von Wohnungen?",
+        "Option A": "Obligationenrecht (OR)",
+        "Option B": "Mehrwertsteuergesetz (MWSTG)",
+        "Option C": "Strafgesetzbuch (StGB)",
+        "Option D": "Bundesgesetz über Schuldbetreibung und Konkurs (SchKG)",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "In der Schweiz gibt es verschiedene Gesetze. Was regelt das Zivilge­ setzbuch (ZGB)?",
+        "Option A": "Eheschliessungen und Scheidungen",
+        "Option B": "Firmengründungen",
+        "Option C": "Strafen bei Mord und Totschlag",
+        "Option D": "Staatsverträge",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "In der Schweiz gibt es verschiedene Gesetze. Welches regelt, ob je­ mand ins Gefängnis muss?",
+        "Option A": "Obligationenrecht (OR)",
+        "Option B": "Zivilgesetzbuch (ZGB)",
+        "Option C": "Strafgesetzbuch (StGB)",
+        "Option D": "Bundesgesetz über Schuldbetreibung und Konkurs (SchKG)",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Wie werden Richterinnen und Richter am Bundesgericht ernannt?",
+        "Option A": "Durch die Kantonsparlamente. Jeder Kanton kann einen Richter stellen.",
+        "Option B": "Durch ein normales Bewerbungsverfahren mit Vorstellungsgespräch.",
+        "Option C": "Durch Wahl des Bundesparlaments.",
+        "Option D": "Der Bundesrat hat das Recht, Richter einzusetzen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Dürfen Schweizer Bürgerinnen und Bürger an andere Länder ausgelie­ fert werden?",
+        "Option A": "Nein. Dies ist unter keinen Umständen erlaubt.",
+        "Option B": "Ja, aber nur an Länder welche demokratisch organisiert sind.",
+        "Option C": "Ja, aber nur wenn die Straftat auch in der Schweiz strafbar ist.",
+        "Option D": "Grundsätzlich nicht. Ausgenommen für Prozesse vor internationalen Gerichten.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Bund",
+        "Question": "Von was hängt die individuelle Steuerbelastung ab?",
+        "Option A": "vom steuerbaren Einkommen und Vermögen",
+        "Option B": "von der Mitgliedschaft bei einer Partei",
+        "Option C": "von der Nationalität",
+        "Option D": "von der Mitgliedschaft in einer Behörde",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie viele Regierungsräte hat der Kanton Zürich?",
+        "Option A": "3",
+        "Option B": "250",
+        "Option C": "7",
+        "Option D": "180",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie heisst eine Direktion des Kanton Zürichs?",
+        "Option A": "Tourismusdirektion",
+        "Option B": "Baudirektion",
+        "Option C": "Ernährungsdirektion",
+        "Option D": "Militärdirektion",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie heisst in der Stadt Zürich die Exekutive?",
+        "Option A": "Stadtrat",
+        "Option B": "Nationalrat",
+        "Option C": "Regierungsrat",
+        "Option D": "Bundesrat",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Was ist eine Aufgabe des Kantons Zürich?",
+        "Option A": "Abschluss von Verträgen mit der Europäischen Union",
+        "Option B": "Organisation der Universität",
+        "Option C": "Digitalisierung der Bundesverwaltung",
+        "Option D": "Organisation der Armee",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie viele Bezirke gibt es im Kanton Zürich?",
+        "Option A": "12",
+        "Option B": "18",
+        "Option C": "7",
+        "Option D": "25",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie können im Kanton Zürich auch Personen ohne Schweizer Pass po­ litisch aktiv werden?",
+        "Option A": "mit einem Referendum.",
+        "Option B": "mit einer Petition.",
+        "Option C": "mit einem Einsitz in die Regierung.",
+        "Option D": "mit einem parlamentarischen Kommissionsantrag.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie viele Mitglieder hat die Regierung des Kantons Zürich?",
+        "Option A": "7",
+        "Option B": "3",
+        "Option C": "5",
+        "Option D": "je nach Aufgaben, die anstehen.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Für was sind die Kantone vor allem zuständig?",
+        "Option A": "für die Leitung der kantonalen Verwaltung und für kantonale Gesetze",
+        "Option B": "für die Innen- und Aussenpolitik auf nationaler Ebene",
+        "Option C": "für die nationale Verteidigung (Militär)",
+        "Option D": "für die Geldpolitik und die Zölle",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie oft werden die Mitglieder des Kantonsrats gewählt?",
+        "Option A": "alle 6 Jahre",
+        "Option B": "alle 2 Jahre",
+        "Option C": "alle 7 Jahre",
+        "Option D": "alle 4 Jahre",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie heisst die Exekutive im Kanton Zürich?",
+        "Option A": "Landammann",
+        "Option B": "Regierungsrat",
+        "Option C": "Ständerat",
+        "Option D": "Es gibt keine Exekutive.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Welches ist das Wappen des Kantons Zürich?",
+        "Option A": "a)",
+        "Option B": "b)",
+        "Option C": "c)",
+        "Option D": "d)",
+        "Answer": "c", 
+        "Needs Picture": true, 
+        "Picture Files": "page_25_img_2.png, page_25_img_3.png, page_25_img_4.png, page_25_img_5.png" 
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie viele Personen sind für den Kanton Zürich im Ständerat?",
+        "Option A": "13",
+        "Option B": "5",
+        "Option C": "2",
+        "Option D": "7",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie heisst das Parlament im Kanton Zürich?",
+        "Option A": "Landtag",
+        "Option B": "Grosser Rat",
+        "Option C": "Kantonsrat",
+        "Option D": "Regierungsrat",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie werden die Mitglieder der Zürcher Regierung bestimmt?",
+        "Option A": "Sie werden von den Parteien ernannt.",
+        "Option B": "Sie werden vom Kantonsrat gewählt.",
+        "Option C": "Sie werden auf Parteiversammlungen gewählt.",
+        "Option D": "Sie werden von den Zürcher Stimmbürgerinnen und Stimmbürgern gewählt.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wer stellt im Kanton Zürich die Führerausweise für Autofahrerinnen und Autofahrer aus?",
+        "Option A": "die Gemeinde",
+        "Option B": "das Strassenverkehrsamt",
+        "Option C": "die Verkehrsverbände",
+        "Option D": "die Verkehrspolizei",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wer darf Motorfahrzeuge für den Verkehr zulassen?",
+        "Option A": "die Gemeinde",
+        "Option B": "die grossen Autogaragen",
+        "Option C": "das Strassenverkehrsamt",
+        "Option D": "die Verkehrspolizei",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Kanton",
+        "Question": "Wie werden die Mitglieder des Kantonsrats bestimmt?",
+        "Option A": "durch Wahlen",
+        "Option B": "durch Ernennung von der Kantonsregierung",
+        "Option C": "durch das eidgenössische Parlament",
+        "Option D": "durch die Ständeräte des Kantons",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Was passiert an einer Gemeindeversammlung?",
+        "Option A": "Die Stimmbürgerinnen und Stimmbürger entscheiden über das Budget.",
+        "Option B": "Die Einwohnerinnen und Einwohner feiern ein Fest.",
+        "Option C": "Die Stimmbürgerinnen und Stimmbürger wählen den Chef oder die Chefin der",
+        "Option D": "Die Stimmbürgerinnen und Stimmbürger beschliessen neue nationale Gesetze.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wer wählt den Gemeinderat der Stadt Zürich?",
+        "Option A": "der Kantonsrat",
+        "Option B": "der Regierungsrat",
+        "Option C": "der Bezirksrat",
+        "Option D": "das Volk",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Was ist eine Aufgabe von Zürcher Gemeinden?",
+        "Option A": "Sie bauen Autobahnen.",
+        "Option B": "Sie führen das Militär.",
+        "Option C": "Sie verkaufen Versicherungen.",
+        "Option D": "Sie organisieren die Primarschule.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wer erteilt die Baubewilligung für ein Einfamilienhaus im Kanton Zü­ rich?",
+        "Option A": "der Nachbar",
+        "Option B": "die Gemeinde",
+        "Option C": "das Quartierkomitee",
+        "Option D": "die Architektin",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Für was sind die Gemeinden zuständig?",
+        "Option A": "für die Organisation von privaten Geburtstagsfesten",
+        "Option B": "für die Aussenpolitik",
+        "Option C": "für die lokale Raumplanung",
+        "Option D": "für das Militär",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wer zählt bei politischen Abstimmungen die Stimmzettel?",
+        "Option A": "das Militärbüro",
+        "Option B": "das Wahlbüro",
+        "Option C": "die Stimmbürgerinnen und Stimmbürger selber",
+        "Option D": "die Polizei",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Bürgerinnen und Bürger können auf Gemeindeebene politisch ent­ scheiden, indem sie . . .",
+        "Option A": "regelmässig an Volksfesten teilnehmen.",
+        "Option B": "die Steuern rechtzeitig bezahlen.",
+        "Option C": "in Vereinen mitwirken.",
+        "Option D": "an Wahlen und Abstimmungen teilnehmen.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wer leitet die Verwaltung und plant die Ziele öffentlichen Handelns der Stadt Zürich?",
+        "Option A": "die Stadtkanzlei",
+        "Option B": "der Stadtrat",
+        "Option C": "die Einwohnerkontrolle",
+        "Option D": "die Einwohnerinnen und Einwohner der Stadt",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wofür ist die Gemeinde zuständig?",
+        "Option A": "Fachhochschulen",
+        "Option B": "Geldpolitik",
+        "Option C": "Zivildienst",
+        "Option D": "Einwohnerkontrolle",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Demokratie und Föderalismus",
+        "Area": "Gemeinde",
+        "Question": "Wie viele Gemeinden gibt es im Kanton Zürich?",
+        "Option A": "zwischen 30 und 50",
+        "Option B": "zwischen 150 und 170",
+        "Option C": "zwischen 420 und 440",
+        "Option D": "zwischen 300 und 320",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wie nennt man die oberste Repräsentantin oder den obersten Reprä­ sentanten in kleineren Zürcher Gemeinden?",
+        "Option A": "Bürgermeisterin oder Bürgermeister",
+        "Option B": "Gemeindeammann",
+        "Option C": "Bezirksamtmann",
+        "Option D": "Gemeindepräsidentin oder Gemeindepräsident",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Die Steuererklärung ...",
+        "Option A": "beschreibt das Vorgehen bei Abgabe der Steuer.",
+        "Option B": "weist die finanzielle Situation des Steuerzahlenden gegenüber der Steuerbe­",
+        "Option C": "belegt gegenüber der Steuerbehörde die Lotteriegewinne.",
+        "Option D": "beschreibt, wie man die Formulare für die Steuerbehörde ausfüllen muss.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist ein Arbeitszeugnis?",
+        "Option A": "eine Liste aller bisherigen Arbeitsstellen eines Arbeitsnehmers",
+        "Option B": "eine vom Arbeitnehmer bewertete Leistung des Arbeitsgebers",
+        "Option C": "ein Vertrag zwischen Arbeitnehmer-Verbänden und Arbeitgeber-Verbänden",
+        "Option D": "vom Arbeitgeber ausgestellte Urkunde, die Auskunft über die Leistung und das",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche Versicherung im Gesundheitswesen ist Pflicht?",
+        "Option A": "die Versicherung für Alternativmedizin",
+        "Option B": "die zahnmedizinische Versicherung",
+        "Option C": "die Zusatzversicherung",
+        "Option D": "die obligatorische Krankenpflegeversicherung",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Arbeitnehmende und Selbständigerwerbende mit Kindern haben An­ spruch auf …",
+        "Option A": "Kinderbegünstigung.",
+        "Option B": "Elternentlastung.",
+        "Option C": "Familienzulage.",
+        "Option D": "Finanzhilfe.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Der Zivildienst in der Schweiz ist ...",
+        "Option A": "für alle Männer und Frauen obligatorisch.",
+        "Option B": "ein freiwilliger Einsatz für die Gesellschaft.",
+        "Option C": "ein Ersatz zum Militärdienst.",
+        "Option D": "ein Freifach der obligatorischen Schule.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche Aussage zur obligatorischen Versicherung in einer Kranken­ kasse in der Schweiz ist richtig?",
+        "Option A": "Jede Krankenkasse bestimmt ihre Leistungen selbst.",
+        "Option B": "Man kann die Krankenkasse frei wählen.",
+        "Option C": "Es ist freiwillig, eine Krankenkasse zu haben.",
+        "Option D": "Der Kanton kann seinen Einwohnerinnen und Einwohnern eine Krankenkasse zu­",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wann dürfen Einwohnerinnen und Einwohner ohne Schweizer Pass an nationalen Abstimmungen teilnehmen?",
+        "Option A": "nur bei Abstimmungen über Volksinitiativen",
+        "Option B": "nur bei nationalen Referenden",
+        "Option C": "Sie dürfen gar nicht abstimmen.",
+        "Option D": "nur bei den Abstimmungen Ende Jahr",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Für was steht in der Schweiz die Nummer 117?",
+        "Option A": "für den Polizeinotruf",
+        "Option B": "für die Auskunft",
+        "Option C": "für die Abfallentsorgungsstelle",
+        "Option D": "für den Pannendienst",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was gehört zum Schweizer Sozialversicherungs-Systems?",
+        "Option A": "Schutz vor Folgen bei Krankheit und Unfall",
+        "Option B": "Schutz vor Einbrechern",
+        "Option C": "Schutz vor Hochwasser und Unwetter",
+        "Option D": "Schutz vor privatem Kommunikationsmissbrauch",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Für was gibt es in der Schweiz eine Sozialversicherung?",
+        "Option A": "wenn man einen Zahn verliert",
+        "Option B": "wenn man die Stelle verliert",
+        "Option C": "wenn das Velo gestohlen wird",
+        "Option D": "wenn man sich scheiden lässt",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist eine Schweizer Sozialversicherung?",
+        "Option A": "Schulvorsorge",
+        "Option B": "Jugend- und Freizeitvorsorge",
+        "Option C": "Alters-, Hinterlassenen- und Invalidenversicherung (AHV/IV)",
+        "Option D": "Scheidungsvorsorge",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist die erste Säule der Altersvorsorge?",
+        "Option A": "das bedingungslose Grundeinkommen",
+        "Option B": "die Pensionskasse",
+        "Option C": "der Grundpfeiler des Schweizer Parlamentsgebäudes",
+        "Option D": "die AHV (Alters-, Hinterlassenen- und Invalidenversicherung)",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist die zweite Säule der Altersvorsorge?",
+        "Option A": "ein Denkmal auf dem Bundesplatz",
+        "Option B": "die Pensionskasse",
+        "Option C": "die Krankenversicherung",
+        "Option D": "eine Erbschaft",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist die dritte Säule der Altersvorsorge?",
+        "Option A": "die private Vorsorge",
+        "Option B": "der Dienstleistungssektor",
+        "Option C": "die Invalidenversicherung",
+        "Option D": "der Erwerbsersatz",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Für was setzt sich Amnesty International ein?",
+        "Option A": "für die Senkung des CO2",
+        "Option B": "für die Artenvielfalt",
+        "Option C": "für das Tierwohl",
+        "Option D": "für die Achtung der Menschenrechte",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer setzt sich für die Rechte von Arbeitnehmenden ein?",
+        "Option A": "Kirchen",
+        "Option B": "Gewerkschaften",
+        "Option C": "Spitäler",
+        "Option D": "Schulen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "In der Schweiz sind seit 2002 Abtreibungen mit der Fristenlösung ge­ regelt. Was bedeutet das?",
+        "Option A": "Eine Frau darf bis zur 12. Woche der Schwangerschaft frei entscheiden, ob sie",
+        "Option B": "Eine Frau braucht die Erlaubnis ihres Ehemannes, um abzutreiben.",
+        "Option C": "Abtreibung ist in jedem Fall verboten.",
+        "Option D": "Abtreibung ist nur erlaubt, wenn die Eltern nicht verheiratet sind.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was bedeutet AHV?",
+        "Option A": "Alters- und Hinterlassenenversicherung",
+        "Option B": "Auto- und Heimreiseversicherung",
+        "Option C": "Arbeits- und Haushaltsversicherung",
+        "Option D": "Amt für Hausverwaltung",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche staatliche Unterstützung bekommen alle Familien in der Schweiz?",
+        "Option A": "keine Unterstützung",
+        "Option B": "kostenlose Zugfahrten und Busfahrten",
+        "Option C": "Stipendien für Jugendliche in Ausbildung",
+        "Option D": "Kinderzulagen",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche Versicherung ist in der Schweiz obligatorisch?",
+        "Option A": "die Alters- und Hinterlassenenversicherung (AHV)",
+        "Option B": "die Jugendversicherung (JV)",
+        "Option C": "die Lebensversicherung (LV)",
+        "Option D": "die Geburtenversicherung (GV)",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wenn man mit der Steuerrechnung nicht einverstanden ist, . . .",
+        "Option A": "bezahlt man vorläufig nur die Hälfte des Betrags.",
+        "Option B": "muss man sie an die Steuerbehörden zurück schicken.",
+        "Option C": "muss man sich bei der Polizei melden.",
+        "Option D": "kann man bei der Steuerbehörde schriftlich seine Einwände dagegen mitteilen.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wie unterstützt der Staat in der Schweiz die Familien?",
+        "Option A": "Es gibt keine Unterstützung.",
+        "Option B": "mit kostenlosem Internet",
+        "Option C": "mit kostengünstigen Lebensmitteln",
+        "Option D": "mit Steuerabzügen",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was finanziert der Staat mit Steuergeldern?",
+        "Option A": "Arztpraxen",
+        "Option B": "Kinos",
+        "Option C": "Schulen",
+        "Option D": "Hotels",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist eine Sozialversicherung in der Schweiz?",
+        "Option A": "die Auto- und Insassenversicherung (AIV)",
+        "Option B": "die Invalidenversicherung (IV)",
+        "Option C": "die Diebstahlversicherung (DV)",
+        "Option D": "die Bau- und Feuerversicherung (BFV)",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was wird Angestellten direkt vom Lohn abgezogen? Der Beitrag für die . . .",
+        "Option A": "Auto- und Unfallversicherung (AUV).",
+        "Option B": "Arbeitslosenversicherung (ALV).",
+        "Option C": "Diebstahlversicherung (DV).",
+        "Option D": "Brandschutzversicherung (BSV).",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist das RAV?",
+        "Option A": "Regionales Arbeitsvermittlungszentrum",
+        "Option B": "Rechtsstelle für Allgemeine Versicherungen",
+        "Option C": "Institut für Rechtsfragen",
+        "Option D": "Rentenanstalt",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was bedeutet die Abkürzung IV?",
+        "Option A": "Interessensvertretung",
+        "Option B": "Internationales Verfahren",
+        "Option C": "Inakzeptables Vorkommen",
+        "Option D": "Invalidenversicherung",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer muss sich bei einer Krankenkasse versichern lassen?",
+        "Option A": "niemand",
+        "Option B": "nur Arbeitnehmerinnen und Arbeitnehmer",
+        "Option C": "nur Kinder und ältere Menschen",
+        "Option D": "alle Einwohnerinnen und Einwohner",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer übernimmt die Spitalkosten bei einem schweren Arbeitsunfall?",
+        "Option A": "die betroffene Person selbst",
+        "Option B": "die Berufsunfallversicherung",
+        "Option C": "die Gewerkschaft",
+        "Option D": "die Arbeitgeberin oder der Arbeitgeber",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche Versicherung ist in der Schweiz obligatorisch?",
+        "Option A": "Haftpflichtversicherung",
+        "Option B": "Krankenversicherung",
+        "Option C": "Arbeitsversicherung",
+        "Option D": "Vermögensversicherung",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist das BAG?",
+        "Option A": "die Bereitstellung allgemeiner Gesundheitsleistungen",
+        "Option B": "das Bundesamt für Gesundheit",
+        "Option C": "das Bundesamt für allgemeine Grundversorgung",
+        "Option D": "das Kontrollorgan des Bundes für allgemeine Grundversicherungen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Für was steht in der Schweiz die Nummer 144?",
+        "Option A": "für den Sanitätsnotruf",
+        "Option B": "für die Feuerwehrzentrale",
+        "Option C": "für die Polizeizentrale",
+        "Option D": "für die Auskunft",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Ab wann muss ein Kind in der Schweiz eine Krankenversicherung haben?",
+        "Option A": "ab spätestens einem Jahr nach der Geburt",
+        "Option B": "ab Schuleintritt",
+        "Option C": "ab spätestens drei Monaten nach der Geburt",
+        "Option D": "Ein Kind braucht keine eigene Krankenversicherung.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wie viele Jahre dauert in der Schweiz die obligatorische Schulzeit?",
+        "Option A": "11 Jahre",
+        "Option B": "13 Jahre",
+        "Option C": "8 Jahre",
+        "Option D": "6 Jahre",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer entscheidet darüber, in welche Klasse ein Kind in der Primar­ schule kommt?",
+        "Option A": "die Eltern",
+        "Option B": "die Schulleitung oder die Schulpflege",
+        "Option C": "die Kinderärztin oder der Kinderarzt",
+        "Option D": "die Kinder selbst",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Die Erziehung der Kinder ist vor allem Aufgabe …",
+        "Option A": "des Staats.",
+        "Option B": "der Grosseltern.",
+        "Option C": "der Eltern.",
+        "Option D": "der Schulen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist im Schweizer Bildungssystem obligatorisch?",
+        "Option A": "Weiterbildungskurse nach der Berufslehre",
+        "Option B": "Kindertagesstätte",
+        "Option C": "Maturitätsschule",
+        "Option D": "Primarschule",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Eine Angestellte darf nicht entlassen werden, wenn sie ...",
+        "Option A": "immer pünktlich war.",
+        "Option B": "die Kündigung ablehnt.",
+        "Option C": "schwanger ist.",
+        "Option D": "schon lange im Betrieb gearbeitet hat.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Gewerkschaften vertreten die Interessen von ...",
+        "Option A": "Arbeitgeberinnen und Arbeitgebern.",
+        "Option B": "Arbeitnehmerinnen und Arbeitnehmern.",
+        "Option C": "Jugendlichen.",
+        "Option D": "Betrieben.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Für welchen Streitfall ist das Arbeitsgericht zuständig?",
+        "Option A": "Wenn Arbeitnehmende die Erbschaftssteuer nicht bezahlen.",
+        "Option B": "Wenn Arbeitnehmenden ohne Grund gekündigt wird",
+        "Option C": "Wenn Arbeitnehmende ein Problem mit einer Nachbarin oder einem Nachbarn",
+        "Option D": "Wenn Arbeitnehmende finanzielle Schwierigkeiten in der Familie haben, diese",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "An wen können sich Arbeitnehmerinnen und Arbeitnehmer bei arbeits­ rechtlichen Fragen wenden?",
+        "Option A": "an Anwälte, Gewerkschaften und Arbeitsgerichte",
+        "Option B": "an die Steuerverwaltung",
+        "Option C": "an die Polizei und die Einwohnerkontrolle der Gemeinde",
+        "Option D": "an die Kirchgemeinde und den Zivilschutz",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was muss man machen, wenn man ein Arbeitsverhältnis regulär been­ den will?",
+        "Option A": "warten, bis die Chefin oder der Chef aus den Ferien zurück ist",
+        "Option B": "den Arbeitsplatz räumen und dann dem Arbeitsplatz fern bleiben",
+        "Option C": "den Arbeitsvertrag vernichten",
+        "Option D": "mit einem eingeschriebenen Brief kündigen oder den Eingang der Kündigung",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Economiesuisse vertritt die Interessen ...",
+        "Option A": "der Angestellten.",
+        "Option B": "der Unternehmen.",
+        "Option C": "des Gastgewerbes.",
+        "Option D": "der Handwerkerinnen und Handwerker.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist in einem Arbeitsvertrag unter anderem geregelt? Es ist gere­ gelt, ...",
+        "Option A": "welche Krankenkasse man wählen muss.",
+        "Option B": "wie hoch die Altersrente ist.",
+        "Option C": "wie die Freizeit gestaltet wird.",
+        "Option D": "wie hoch der Lohn ist.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was kann man tun, wenn die Arbeitgeberin oder der Arbeitgeber ohne Grund zu wenig Lohn ausbezahlt?",
+        "Option A": "Es gibt keine rechtlichen Möglichkeiten.",
+        "Option B": "Man kann bis zum Vertragsende nicht mehr zur Arbeit gehen.",
+        "Option C": "Man kann an das Arbeitsgericht gelangen.",
+        "Option D": "Man kann Anzeige bei der Polizei machen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist ein Berufsbildungszentrum?",
+        "Option A": "eine Arbeitsvermittlungsstelle",
+        "Option B": "ein Standort, an dem unterschiedliche Angebote zur beruflichen Bildung beitra­",
+        "Option C": "eine Fachhochschule",
+        "Option D": "ein arbeitstechnisches Forschungszentrum",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welcher Feiertag gilt nach Gesetz für die ganze Schweiz?",
+        "Option A": "1. August",
+        "Option B": "Auffahrt",
+        "Option C": "Karfreitag",
+        "Option D": "1. Mai",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist das ordentliche Rentenalter der Schweiz?",
+        "Option A": "63 Jahre bei Frauen und Männern",
+        "Option B": "64 Jahre bei Frauen und Männern",
+        "Option C": "65 Jahre bei Frauen und Männern",
+        "Option D": "66 Jahre bei Frauen und Männern",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer bezahlt keine Prämien für Arbeitslosenversicherung?",
+        "Option A": "Personen in der Berufsausbildung",
+        "Option B": "Pensionierte",
+        "Option C": "Arbeitnehmerinnen und Arbeitnehmer",
+        "Option D": "alle Personen ab 50 Jahren",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wo findet man Informationen über Lehrstellen, Beruf und Arbeit?",
+        "Option A": "auf der Steuerverwaltung",
+        "Option B": "im Bundesarchiv",
+        "Option C": "im Staatssekretariat für Bildung, Forschung und Innovation",
+        "Option D": "im Berufsinformationszentrum",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer ist der wichtigste Handelspartner der Schweiz (Stand 2017)?",
+        "Option A": "EU",
+        "Option B": "USA",
+        "Option C": "China",
+        "Option D": "Russland",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wann hat man als Arbeitnehmerin oder Arbeitnehmer Anrecht auf be­ zahlte freie Stunden oder Tage am Arbeitsplatz?",
+        "Option A": "bei Stromausfall",
+        "Option B": "für die Ausübung eines öffentlichen Amtes",
+        "Option C": "für die Erledigung von Administration auf der Bank oder Post",
+        "Option D": "bei der Einschulung der eigenen Kinder",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was bedeutet MWST?",
+        "Option A": "Meinungsfreiheit",
+        "Option B": "mittlerer Wohlstand",
+        "Option C": "Mehrwertsteuer",
+        "Option D": "Mass für Wasserstand in Flüssen",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welche Aussage zum Mutterschaftsurlaub in der Schweiz ist richtig?",
+        "Option A": "Der Mutterschaftsurlaub beträgt 20 Wochen.",
+        "Option B": "Die normalen Ferien nach der Geburt des Kindes muss man zuerst aufbrau­",
+        "Option C": "Den Mutterschaftsurlaub dürfen Frauen im Alter von 20 bis 50 Jahren nur ein­",
+        "Option D": "Jede Frau, die arbeitet und ein Kind bekommt, hat das Recht auf Mutterschaftsur­",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist in der Schweiz verboten? Es ist verboten, …",
+        "Option A": "als Mann und Frau unverheiratet zusammen zu leben.",
+        "Option B": "als erwachsene Person mit den Eltern zusammen zu leben.",
+        "Option C": "als Mann mit zwei Frauen zur selben Zeit verheiratet zu sein.",
+        "Option D": "als Mann für seine Kinder allein zu sorgen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was regelt der Mietvertrag für eine Wohnung?",
+        "Option A": "den Wohnstandard",
+        "Option B": "die Rechte und Pflichten der Vertragspartner",
+        "Option C": "was gekocht werden darf",
+        "Option D": "wie die Wohnung eingerichtet werden muss",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Unter welchen Voraussetzungen darf man in der Schweiz heiraten?",
+        "Option A": "Die Braut muss schwanger sein.",
+        "Option B": "Man muss 18 Jahre alt und urteilsfähig sein.",
+        "Option C": "Man muss über ein Mindesteinkommen verfügen.",
+        "Option D": "Die Eltern müssen einverstanden sein.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer kann einen Antrag auf Scheidung stellen?",
+        "Option A": "nur der Ehemann",
+        "Option B": "die Kinder der Eheleute",
+        "Option C": "die Ehefrau oder der Ehemann oder beide zusammen",
+        "Option D": "nur die Ehefrau",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wer muss beim Zivilstandsamt den Heiratswillen anmelden?",
+        "Option A": "nur der Mann allein",
+        "Option B": "nur die Eltern",
+        "Option C": "Das verlobte Paar gemeinsam",
+        "Option D": "nur die Frau allein",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wen muss man auf begründetes Verlangen in die eigene Wohnung las­ sen?",
+        "Option A": "die Pöstlerin oder den Pöstler",
+        "Option B": "die Vermieterin oder den Vermieter",
+        "Option C": "Personen, die für ein öffentliches Amt in der Gemeinde kandidieren",
+        "Option D": "die Arbeitgeberin oder den Arbeitgeber",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist der Mieterinnen- und Mieterverband?",
+        "Option A": "eine Schlichtungsstelle des Bundes in Mietfragen",
+        "Option B": "ein Wohnungsvermittlungsinstitut",
+        "Option C": "eine Interessensvertretung der Mieterinnen und Mieter",
+        "Option D": "ein Zusammenschluss aller Mieterinnen und Mieter der Schweiz",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Was ist eine Voraussetzung für eine Eheschliessung in der Schweiz?",
+        "Option A": "Beide Partner müssen mindestens 16 Jahre alt sein.",
+        "Option B": "Die Partner müssen bereits in einer eingetragenen Partnerschaft leben.",
+        "Option C": "Die Partner müssen den gleichen Wohnsitz haben.",
+        "Option D": "Die Partner dürfen nicht eng verwandt sein.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Wann kann der Fahrausweis entzogen werden?",
+        "Option A": "bei unerlaubtem Hupen",
+        "Option B": "bei Fahren unter Einfluss von Alkohol oder Drogen",
+        "Option C": "bei falschem Parkieren",
+        "Option D": "bei Fahren bei starkem Nebel",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Welchen Nachnamen bekommt ein Kind von verheirateten Eltern?",
+        "Option A": "immer einen Doppelnamen mit dem Namen der Mutter zuerst",
+        "Option B": "immer den Namen des Vaters",
+        "Option C": "immer den Namen der Mutter",
+        "Option D": "muss von den Eltern ohne gemeinsamen Familiennamen bei der Heirat ent­",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Bund",
+        "Question": "Besitzer eines Hundes müssen für ihren Hund …",
+        "Option A": "einen Namen haben.",
+        "Option B": "eine Geburtsurkunde besitzen.",
+        "Option C": "Hundesteuern zahlen.",
+        "Option D": "eine Krankenversicherung abschliessen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Kanton",
+        "Question": "Wann kann jemand sogenannte Ergänzungsleistungen beziehen?",
+        "Option A": "Wenn man eine Lehrstelle in einem Betrieb hat.",
+        "Option B": "Wenn man den Mindestlohn nicht erreicht.",
+        "Option C": "Wenn man trotz IV- oder AHV-Rente das Existenzminimum nicht erreicht.",
+        "Option D": "Wenn man arbeitslos ist.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Kanton",
+        "Question": "Wo muss man in der Schweiz obligatorisch Mitglied sein?",
+        "Option A": "in einer Partei",
+        "Option B": "in einem Sportverein",
+        "Option C": "in einer Krankenkasse",
+        "Option D": "in einem Automobilclub oder Veloclub",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Kanton",
+        "Question": "Wer darf einen Verein gründen?",
+        "Option A": "nur Personen mit einem sportlichen Leistungsausweis",
+        "Option B": "nur Personen ab einem bestimmten Einkommen",
+        "Option C": "jede Person in der Schweiz",
+        "Option D": "alle Frauen und Männer ab 21 Jahren",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Kanton",
+        "Question": "Was gehört zu den wichtigsten Kantonssteuern und Gemeindesteu­ ern?",
+        "Option A": "Vermögenssteuer",
+        "Option B": "Tabaksteuer",
+        "Option C": "Privatsteuer",
+        "Option D": "Handysteuer",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Was gehört zu den wichtigsten Kantonssteuern und Gemeindesteuern?",
+        "Option A": "Verrechnungssteuer",
+        "Option B": "Alkoholsteuer",
+        "Option C": "Zölle",
+        "Option D": "Einkommenssteuer",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wer ist in der Schweiz in erster Linie für die Volksschule verantwortlich?",
+        "Option A": "die Bundesschulverwaltung",
+        "Option B": "die Kantone und Gemeinden",
+        "Option C": "die Schulkonferenz der Kantone",
+        "Option D": "der Volksschulrat",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wann beginnt die obligatorische Schulzeit im Kanton Zürich?",
+        "Option A": "Kindergarten",
+        "Option B": "Primarschule",
+        "Option C": "Spielgruppe",
+        "Option D": "Einführungsklasse",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Was ist ein Quartierverein?",
+        "Option A": "Ein Verein, der die Rechte eines Quartiers gegenüber dem Bund und dem Kan­",
+        "Option B": "Ein Verein, der für die Interessen der Bewohnerinnen und Bewohner eines",
+        "Option C": "Ein Verein, in dem Bewohnerinnen und Bewohner eines Quartiers automatisch",
+        "Option D": "Ein Verein, der die Verkehrswege innerhalb eines Quartiers regelt und die Ein­",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Was will der Finanzausgleich zwischen den Gemeinden?",
+        "Option A": "Er soll helfen, die Korruption zu bekämpfen.",
+        "Option B": "Er soll helfen, eine Inflation zu vermeiden.",
+        "Option C": "Er zwingt arme Gemeinden zur Erledigung ihrer Pflichten (Schulen, Altersheime,",
+        "Option D": "Er unterstützt arme Gemeinden oder Gemeinden mit hohen Sozialausgaben bei",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Welche Unterstützung gibt die Gemeinde, wenn das eigene Einkom­ men oder Vermögen für den Lebensunterhalt nicht ausreicht?",
+        "Option A": "Geld für Mahlzeiten (Kostgeld)",
+        "Option B": "einen Gemeindebeitrag (Gemeinderappen)",
+        "Option C": "Sozialhilfe",
+        "Option D": "Kantonsgeld",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wo kann man sich über Angebote und Regelungen der Gemeinde infor­ mieren?",
+        "Option A": "in der Lokalzeitung oder im Internet",
+        "Option B": "im Fernsehen",
+        "Option C": "am Anschlagbrett im Einkaufszentrum",
+        "Option D": "auf Plakaten",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Für welche sozialen Leistungen zahlen die Gemeinden?",
+        "Option A": "Sozialhilfe in einer Notsituation",
+        "Option B": "Altersrente",
+        "Option C": "Kosten für die Fahrprüfung",
+        "Option D": "Reisekosten in der Freizeit",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wer ist zuständig für die Finanzierung und Organisation der Primar­ schule?",
+        "Option A": "die Eltern",
+        "Option B": "der Kanton mit den Gemeinden",
+        "Option C": "der Bund",
+        "Option D": "der Schulkreis",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wo muss man sich melden, wenn man heiraten möchte?",
+        "Option A": "an die Eltern",
+        "Option B": "an die Regionale Partnervermittlung",
+        "Option C": "an das Zivilstandsamt",
+        "Option D": "an die Eheberatung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wo muss man sich melden, wenn man umzieht?",
+        "Option A": "bei den Steuerbehörden",
+        "Option B": "bei der Polizei",
+        "Option C": "bei der Gebäudeversicherung",
+        "Option D": "bei der Gemeinde (Einwohnerkontrolle)",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Sozialstaat und Zivilgesellschaft",
+        "Area": "Gemeinde",
+        "Question": "Wer leitet die Volksschulen in den Zürcher Gemeinden?",
+        "Option A": "der Elternrat",
+        "Option B": "die Schulleitung",
+        "Option C": "das Schulsekretariat",
+        "Option D": "die Konferenz der Lehrpersonen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Im Jahr 1798 machte ein europäischer Herrscher für kurze Zeit einen Zentralstaat aus der Eidgenossenschaft. Wie hiess der Herrscher?",
+        "Option A": "Rudolf von Habsburg",
+        "Option B": "Friedrich der Grosse",
+        "Option C": "Karl der Kühne",
+        "Option D": "Napoleon Bonaparte",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wer war wichtig bei der Gründung der Eidgenössischen Technischen Hochschule (ETH), dem Eisenbahnbau und der Gründung der heutigen Crédit Suisse?",
+        "Option A": "Conrad Ferdinand Meyer",
+        "Option B": "Robert Grimm",
+        "Option C": "Henri Dufour",
+        "Option D": "Alfred Escher",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Beim Landesstreik 1918 forderten die Arbeitenden mehr Rechte. Was war eine Folge des Landesstreiks?",
+        "Option A": "Die 48-Stunden-Woche wurde eingeführt.",
+        "Option B": "Die Arbeitenden konnten mit der Eisenbahn gratis zur Arbeit fahren.",
+        "Option C": "Arbeitenden bekamen 6 Wochen Ferien.",
+        "Option D": "Die Fabriken wurden Eigentum des Staates.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Was verlangte die sogenannte «Schwarzenbach-Initiative» 1970?",
+        "Option A": "die Einführung des Englischunterrichts in der Primarschule",
+        "Option B": "ein Verbot von Minarettbauten",
+        "Option C": "die Abschaffung der Armee",
+        "Option D": "eine Begrenzung der Anzahl Ausländerinnen und Ausländer",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche Bedeutung hat das Jahr 1848 für die Geschichte der Schweiz?",
+        "Option A": "Gründung des Schweizer Bundesstaates",
+        "Option B": "Garantie der Neutralität durch die europäischen Mächte",
+        "Option C": "Niederlage eidgenössischer Truppen bei Marignano",
+        "Option D": "Unabhängigkeit vom Heiligen Römischen Reich",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wie heisst die Schweizer Nationalhymne?",
+        "Option A": "Swiss-Song",
+        "Option B": "Hallelujah",
+        "Option C": "Schweizerpsalm",
+        "Option D": "Schweizer Hit",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welcher Kanton ist erst seit 1979 ein eigenständiger Kanton?",
+        "Option A": "St. Gallen",
+        "Option B": "Jura",
+        "Option C": "Zürich",
+        "Option D": "Solothurn",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Im 16. Jahrhundert gab es in Europa und in der Schweiz eine wichtige religiöse Bewegung. Wie heisst sie?",
+        "Option A": "Islamisierung",
+        "Option B": "Reformation",
+        "Option C": "Skeptizismus",
+        "Option D": "Hinduismus",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wann haben Schweizer Frauen das Stimm- und Wahlrecht auf Bundes­ ebene bekommen?",
+        "Option A": "1918",
+        "Option B": "1971",
+        "Option C": "1948",
+        "Option D": "1988",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "In den 1950er-Jahren brauchte die Schweiz ausländische Arbeits­ kräfte. Woher kamen die meisten?",
+        "Option A": "Portugal",
+        "Option B": "Frankreich",
+        "Option C": "Italien",
+        "Option D": "Griechenland",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Warum kamen viele Menschen in den 1990-er Jahren aus (Ex-)Jugoslawien in die Schweiz?",
+        "Option A": "Sie wollten an einer Schweizer Universität studieren.",
+        "Option B": "Sie wollten ihre Verwandten besuchen und die Schweiz bereisen.",
+        "Option C": "Sie flohen vor dem Krieg aus ihrer Heimat.",
+        "Option D": "Sie wurden beim Staudammprojekt Grand-Dixence als Arbeitskräfte benötigt.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wie kann man das Verhältnis der Schweiz zu den kriegführenden Mächten im Zweiten Weltkrieg beschreiben?",
+        "Option A": "Bündnispartner der Alliierten",
+        "Option B": "Bündnispartner der Achsenmächte",
+        "Option C": "neutral - politische und wirtschaftliche Beziehungen zu den kriegführenden",
+        "Option D": "neutral - keine Beziehungen zu den kriegführenden Mächten",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "In der Schweiz begann die Industrialisierung im frühen 19. Jahrhun­ dert. Was war dabei am wichtigsten?",
+        "Option A": "Textilindustrie",
+        "Option B": "Stahlindustrie",
+        "Option C": "Kohlenförderung",
+        "Option D": "Autoindustrie",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Mann und Frau sind gleichberechtigt. Seit wann ist dieser Satz in der Verfassung?",
+        "Option A": "seit 1981",
+        "Option B": "seit 1968",
+        "Option C": "seit 1996",
+        "Option D": "seit 1945",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Im 19. Jahrhundert wandelte sich die Schweiz ...",
+        "Option A": "vom Bundesstaat zum Zentralstaat.",
+        "Option B": "zu einer europäischen Grossmacht.",
+        "Option C": "zu einer Kolonialmacht.",
+        "Option D": "vom Agrarstaat zum Industriestaat.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wann stieg der Lebensstandard in der Schweiz für viele Menschen deutlich an?",
+        "Option A": "um 1900",
+        "Option B": "in den 1930er-Jahren",
+        "Option C": "in den 1960er-Jahren",
+        "Option D": "in den 1990er-Jahren",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Während der kolonialen Herrschaft Europas ...",
+        "Option A": "hatte die Schweiz Kolonien in Asien und Afrika.",
+        "Option B": "waren Schweizer Söldner in Russland aktiv.",
+        "Option C": "exportierte die Schweiz Gewürze nach Nordamerika.",
+        "Option D": "konnte sich die Schweiz dank Zugang zu Rohstoffen als Industrienation etablie­",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche Urkantone schlossen sich 1291 zu einem Bündnis zusammen?",
+        "Option A": "St. Gallen, Thurgau, Schaffhausen",
+        "Option B": "Genf, Waadt, Freiburg",
+        "Option C": "Bern, Zürich, Zug",
+        "Option D": "Uri, Schwyz, Unterwalden",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welches Volk lebte zur Zeit des alten Roms im Gebiet der heutigen Schweiz?",
+        "Option A": "Helvetier",
+        "Option B": "Eidgenossen",
+        "Option C": "Etrusker",
+        "Option D": "Illyrier",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wer kämpfte im Sonderbundskrieg 1847 gegeneinander?",
+        "Option A": "Adel und Bauern",
+        "Option B": "Zürich und Bern",
+        "Option C": "Katholiken und Liberale",
+        "Option D": "Westschweiz und Tessin",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Von welcher antiken Herrschaft und Kultur stammt das hier abgebil­ dete Amphitheater (in Avenches)?",
+        "Option A": "von den Galliern",
+        "Option B": "von den Römern",
+        "Option C": "von den Wikingern",
+        "Option D": "von den Griechen",
+        "Answer": "b", 
+        "Needs Picture": true, 
+        "Picture Files": "page_51_img_2.jpeg"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Im Jahr 1515 verloren die Eidgenossen die Schlacht bei Marignano. Welche Folgen hatte diese Niederlage?",
+        "Option A": "Die Eidgenossen verzichteten auf die Eroberung weiterer Gebiete.",
+        "Option B": "Die Schweiz schaffte ihre Armee ab.",
+        "Option C": "Die Bauern wehrten sich gegen die Regierungen in Bern, Zürich und Luzern.",
+        "Option D": "Die Eidgenossen überfielen die Stadt Zürich.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche neue Glaubensrichtung entstand mit der Reformation?",
+        "Option A": "das Judentum",
+        "Option B": "der Buddhismus",
+        "Option C": "der Islam",
+        "Option D": "der protestantische Glaube",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Was führte zur konfessionellen Spaltung der Schweiz?",
+        "Option A": "die Täuferbewegung",
+        "Option B": "die Reformation",
+        "Option C": "der Generalstreik",
+        "Option D": "die Aufhebung der Klöster",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Was führte 1798 zur politischen Neuordnung der Eidgenossenschaft?",
+        "Option A": "die Einführung der allgemeinen Schulpflicht",
+        "Option B": "die Revolution im Waadtland",
+        "Option C": "der Einmarsch der Franzosen in die Schweiz",
+        "Option D": "die Gründung des Kantons Zürich",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Was haben die europäischen Mächte am Wiener Kongress 1815 für die Schweiz festgelegt?",
+        "Option A": "die Befolgung der Neutralität",
+        "Option B": "die Aufhebung der Zölle an den Schweizer Grenzen",
+        "Option C": "den Verzicht auf das Söldnerwesen",
+        "Option D": "die Loslösung von Österreich",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wie wurde die Eidgenossenschaft in der Bundesverfassung von 1848 neu definiert?",
+        "Option A": "als Volksrepublik",
+        "Option B": "als föderalistischer Bundesstaat",
+        "Option C": "als Zentralstaat",
+        "Option D": "als parlamentarische Monarchie",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche wichtige humanitäre Organisation wurde 1863 in Genf gegrün­ det?",
+        "Option A": "Amnesty International",
+        "Option B": "die Pro Juventute",
+        "Option C": "das Internationale Komitee vom Roten Kreuz (IKRK)",
+        "Option D": "die Glückskette",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche Erfindung hat die Schweizer Industrie im 18. Jahrhundert grundlegend verändert?",
+        "Option A": "der Benzinmotor (Otto-Motor)",
+        "Option B": "die Dampfmaschine",
+        "Option C": "der Elektromotor",
+        "Option D": "der Computer",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Im Jahr 1877 hat man die Kinderarbeit in der Schweiz verboten. Wa­ rum?",
+        "Option A": "Kinder mussten zuhause auf den Bauernhöfen mithelfen.",
+        "Option B": "Kinder konnten bei schweren und gefährlichen Arbeiten sowieso nicht einge­",
+        "Option C": "Kinder konnten nicht zur Schule gehen, weil sie in Fabriken arbeiteten.",
+        "Option D": "Kinder wurden zur Arbeit ausgeliehen. Sie verdienten dort aber zu wenig.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Welche Versicherung wurde 1948 in der Schweiz eingeführt?",
+        "Option A": "die Haftpflichtversicherung für Motorfahrzeuge",
+        "Option B": "die Feuerversicherung",
+        "Option C": "die Alters- und Hinterlassenenversicherung (AHV)",
+        "Option D": "die Lebensversicherung",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Seit wann dürfen Schweizer Bürgerinnen auf Bundesebene wählen und abstimmen?",
+        "Option A": "seit 1878",
+        "Option B": "seit 1946",
+        "Option C": "seit 1919",
+        "Option D": "seit 1971",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wer war die erste Frau im Schweizer Bundesrat?",
+        "Option A": "Ruth Dreifuss",
+        "Option B": "Elisabeth Kopp",
+        "Option C": "Ruth Metzler",
+        "Option D": "Micheline Calmy-Rey",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Mit was wurden die Grundlagen der heutigen Beziehungen der Schweiz zur EU gelegt?",
+        "Option A": "mit der Zustimmung des Stimmvolks zu den Bilateralen Verträgen I im Jahr",
+        "Option B": "mit der Ablehnung des EWR-Beitritts durch die Volksabstimmung im Jahr 1992",
+        "Option C": "mit dem Rückzug des Gesuchs für einen EU-Beitritt der Schweiz im Jahr 2016",
+        "Option D": "mit dem UNO-Beitritt der Schweiz im Jahr 2002",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Bund",
+        "Question": "Wer war Wilhelm Tell?",
+        "Option A": "ein eidgenössischer Söldner in fremden Diensten",
+        "Option B": "eine Innerschweizer Sagenfigur, die gegen fremde Herrscher kämpfte",
+        "Option C": "ein adliger Grundherr im Schweizer Mittelland",
+        "Option D": "ein Anführer im Bauernkrieg",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Welche Organisation gründete Henry Dunant (1828-1910) in Genf?",
+        "Option A": "den Christlichen Verein junger Männer",
+        "Option B": "die Pro Juventute",
+        "Option C": "das Internationale Komitee vom Roten Kreuz (IKRK)",
+        "Option D": "den Weltpostverein",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "In welcher Wirtschaftsbranche ist die Schweiz seit Jahrhunderten weltweit führend?",
+        "Option A": "in der Textilindustrie",
+        "Option B": "in der Uhrenindustrie",
+        "Option C": "in der Autoindustrie",
+        "Option D": "im Bergbau",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Weshalb wanderten viele Schweizerinnen und Schweizer im 19. Jahr­ hundert aus?",
+        "Option A": "Weil sie in der Schweiz politisch verfolgt wurden.",
+        "Option B": "Weil sie Berufserfahrung sammeln wollten.",
+        "Option C": "Weil Hunger, Armut und Arbeitslosigkeit herrschte.",
+        "Option D": "Weil sie Lust auf Abenteuer hatten.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Für was wurde der Sechseläutenplatz im Zweiten Weltkrieg benutzt?",
+        "Option A": "als Chilbi",
+        "Option B": "als Sportplatz",
+        "Option C": "als Pferderennbahn",
+        "Option D": "als Kartoffelfeld",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Zur Römerzeit war der Name der Stadt Zürich …",
+        "Option A": "Vitudurum",
+        "Option B": "Vindonissa",
+        "Option C": "Aquae Helveticae",
+        "Option D": "Turicum",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Was haben die Römer nach Zürich gebracht?",
+        "Option A": "die Badekultur",
+        "Option B": "Chinesisches Porzellan",
+        "Option C": "das Alphorn",
+        "Option D": "die Tropenhäuser des Botanischen Gartens",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Von 5000 bis 1000 vor Christus bauten die Menschen am Zürichsee …",
+        "Option A": "Iglus.",
+        "Option B": "Pfahlbauten.",
+        "Option C": "Kirchen.",
+        "Option D": "Höhlensysteme.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "An was starb zwischen 1611 und 1635 fast die Hälfte der Zürcher Be­ völkerung?",
+        "Option A": "an der Pest",
+        "Option B": "am Corona-Virus",
+        "Option C": "an Krebs",
+        "Option D": "an der Spanischen Grippe",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Ulrich Zwingli (1484-1531) war ein bekannter . . .",
+        "Option A": "Reformator in Zürich.",
+        "Option B": "Unternehmer.",
+        "Option C": "Naturwissenschaftler.",
+        "Option D": "Musiker.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Den Kanton Zürich im modernen Sinn gibt es seit ...",
+        "Option A": "1415",
+        "Option B": "1291",
+        "Option C": "1803",
+        "Option D": "1798",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Wer hat die Kirche in Zürich reformiert?",
+        "Option A": "Jan Hus",
+        "Option B": "Ulrich Zwingli",
+        "Option C": "Martin Luther",
+        "Option D": "Jean Calvin",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Wofür hat sich Emilie Lieberherr (1924-2011) eingesetzt?",
+        "Option A": "für eine freie Presse",
+        "Option B": "für das Frauenstimmrecht",
+        "Option C": "gegen den Beitritt der Schweiz zur UNO (Vereinte Nationen)",
+        "Option D": "für die Beteiligung der Schweiz an der Raumfahrt",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geschichte",
+        "Area": "Kanton",
+        "Question": "Welche Fabriken gründeten Philippe Suchard (1797-1884) und Rudolph Lindt (1855-1909) in der Schweiz?",
+        "Option A": "Textilfabriken",
+        "Option B": "Druckereien",
+        "Option C": "Schokoladefabriken",
+        "Option D": "Maschinenfabriken",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Was ist am Gotthard-Basis-Tunnel speziell?",
+        "Option A": "Er war der erste Tunnel in Europa.",
+        "Option B": "Er ist der einzige Eisenbahntunnel Europas.",
+        "Option C": "Er ist der längste Eisenbahntunnel der Welt.",
+        "Option D": "Er hat den grössten Tunneldurchmesser der Welt.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Simplon, Gotthard, Grosser Sankt Bernhard sind Beispiele für ...",
+        "Option A": "Schweizer Käsesorten.",
+        "Option B": "Schweizer Hauptverkehrsachsen.",
+        "Option C": "Schweizer Naturreservate.",
+        "Option D": "Schweizer Alpenpässe.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wohin fliesst der Rhein?",
+        "Option A": "in die Nordsee",
+        "Option B": "ins Schwarze Meer",
+        "Option C": "in den Pazifik",
+        "Option D": "ins Mittelmeer",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wohin fliesst die Rhone?",
+        "Option A": "in die Ostsee",
+        "Option B": "in den Atlantik",
+        "Option C": "ins Mittelmeer",
+        "Option D": "ins Schwarze Meer",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Rund zwei Drittel der ausländischen Bevölkerung der Schweiz ...",
+        "Option A": "kommen aus einem EU-Land.",
+        "Option B": "kommen aus Italien.",
+        "Option C": "sprechen fliessend Englisch.",
+        "Option D": "leben in der Ostschweiz.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Aus geografischer Sicht ist die Schweiz ...",
+        "Option A": "ein Binnenland.",
+        "Option B": "eine Exklave.",
+        "Option C": "ein Kontinent.",
+        "Option D": "eine Insel.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Über das Eisenbahnnetz der Schweiz sagt man, ...",
+        "Option A": "es sei das schönste der Welt.",
+        "Option B": "es sei das dichteste der Welt.",
+        "Option C": "es sei das längste der Welt.",
+        "Option D": "es sei das billigste der Welt.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wer ist der wichtigste Handelspartner der Schweiz?",
+        "Option A": "USA",
+        "Option B": "EU",
+        "Option C": "China",
+        "Option D": "Brasilien",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Die drei grossen geografischen Räume der Schweiz sind:",
+        "Option A": "Jura, Mittelland, Alpen",
+        "Option B": "Rhonetal, Südtäler, Alpennordfuss",
+        "Option C": "Rheintal, Rhonetal, Aaretal",
+        "Option D": "Bündner Alpen, Innerschweizer Alpen, Berner Alpen",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Die Ausdehnung der Schweiz von Norden nach Süden ist ...",
+        "Option A": "580 km.",
+        "Option B": "220 km.",
+        "Option C": "130 km.",
+        "Option D": "760 km.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Die Ausdehnung der Schweiz von Osten nach Westen ist ...",
+        "Option A": "700 km.",
+        "Option B": "150 km.",
+        "Option C": "350 km.",
+        "Option D": "900 km.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Welcher Kanton ist ein Bergkanton?",
+        "Option A": "Wallis",
+        "Option B": "Schaffhausen",
+        "Option C": "Zürich",
+        "Option D": "Aargau",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie heisst die höchste Bergspitze in der Schweiz?",
+        "Option A": "Dom",
+        "Option B": "Dufourspitze",
+        "Option C": "Liskamm",
+        "Option D": "Weisshorn",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Was ist eine wichtige Aufgabe der Raumplanung?",
+        "Option A": "Schutz von unverbauten Landschaften",
+        "Option B": "Unterhalt von Kanalisationen",
+        "Option C": "Bau von Einkaufszentren",
+        "Option D": "Finanzausgleich zwischen Gemeinden",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Warum werden die Gletscher in der Schweiz kleiner?",
+        "Option A": "wegen dem Klimawandel",
+        "Option B": "wegen den vielen Touristen in den Bergen",
+        "Option C": "wegen der Benutzung für die Ski-Rennen",
+        "Option D": "wegen dem vielen Regen im Sommer",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie reagieren Förster auf den Anstieg der Temperaturen wegen des Klimawandels?",
+        "Option A": "Sie holzen die Wälder ab.",
+        "Option B": "Sie pflanzen andere Baumsorten.",
+        "Option C": "Sie besprühen die Wälder.",
+        "Option D": "Sie verweigern die Arbeit.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie heisst ein trockener und warmer Südwind in der Schweiz?",
+        "Option A": "Bise",
+        "Option B": "Föhn",
+        "Option C": "Brise",
+        "Option D": "Führ",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Die Schweiz grenzt im Westen an …",
+        "Option A": "Portugal.",
+        "Option B": "Spanien.",
+        "Option C": "Frankreich.",
+        "Option D": "Deutschland.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Das Nachbarland im Süden der Schweiz ist …",
+        "Option A": "Spanien.",
+        "Option B": "Kroatien.",
+        "Option C": "Liechtenstein.",
+        "Option D": "Italien.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie heisst die grösste Stadt der Schweiz?",
+        "Option A": "Zürich",
+        "Option B": "Basel",
+        "Option C": "Bern",
+        "Option D": "Genf",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wo leben die meisten Menschen in der Schweiz?",
+        "Option A": "in den Alpen",
+        "Option B": "im Westschweizer Jura",
+        "Option C": "im Mittelland",
+        "Option D": "im Tessin",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie viele Ausländerinnen und Ausländer leben in der Schweiz (Stand 2020)?",
+        "Option A": "3.5 Millionen",
+        "Option B": "2.1 Millionen",
+        "Option C": "630'000",
+        "Option D": "1.1 Millionen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie heisst dieser Berg?",
+        "Option A": "Finsteraarhorn",
+        "Option B": "Eiger",
+        "Option C": "Matterhorn",
+        "Option D": "Mont Blanc",
+        "Answer": "c", 
+        "Needs Picture": true, 
+        "Picture Files": "page_62_img_2.jpeg"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Welcher Kanton hat die grösste Fläche?",
+        "Option A": "Basel",
+        "Option B": "Graubünden",
+        "Option C": "Zürich",
+        "Option D": "Glarus",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie viele Menschen leben in der Schweiz (Stand 2020)?",
+        "Option A": "600’000",
+        "Option B": "12 Millionen",
+        "Option C": "5 Millionen",
+        "Option D": "8.6 Millionen",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Wie gross ist der Anteil der ausländischen Wohnbevölkerung in der Schweiz (Stand 2020)?",
+        "Option A": "10%",
+        "Option B": "60%",
+        "Option C": "25%",
+        "Option D": "40%",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Was ist eine wichtige natürliche Ressource der Schweiz?",
+        "Option A": "grosse Goldvorkommen in der Zentralschweiz",
+        "Option B": "grosse Wasservorräte zum Betrieb von Wasserkraftwerken",
+        "Option C": "wertvolle Bodenschätze (Erdöl, Kohle)",
+        "Option D": "grosser Bestand an Fischen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "In welchem Kanton spricht man Französisch und Deutsch?",
+        "Option A": "St. Gallen",
+        "Option B": "Tessin",
+        "Option C": "Graubünden",
+        "Option D": "Freiburg",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Welche Region in der Schweiz nennt man Welschland oder Romandie?",
+        "Option A": "die Ostschweiz",
+        "Option B": "die französischsprachige Schweiz",
+        "Option C": "die deutschsprachige Schweiz",
+        "Option D": "das Tessin",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Welche Sprache spricht man im Kanton Tessin?",
+        "Option A": "Rätoromanisch",
+        "Option B": "Französisch",
+        "Option C": "Italienisch",
+        "Option D": "Deutsch",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "In welchem Kanton spricht man Rätoromanisch?",
+        "Option A": "Freiburg",
+        "Option B": "Appenzell",
+        "Option C": "Glarus",
+        "Option D": "Graubünden",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Bund",
+        "Question": "Was bedeutet das Wort Röstigraben?",
+        "Option A": "die kulturelle Grenze zwischen der deutschsprachigen und der französischspra­",
+        "Option B": "das Rhonetal",
+        "Option C": "die Aareschlucht",
+        "Option D": "die Grenze zwischen der Schweiz und Deutschland",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wo liegt der Kanton Zürich?",
+        "Option A": "a)",
+        "Option B": "b)",
+        "Option C": "c)",
+        "Option D": "d)",
+        "Answer": "b", 
+        "Needs Picture": true, 
+        "Picture Files": "page_65_img_3.jpeg, page_65_img_5.jpeg, page_65_img_7.jpeg, page_65_img_9.jpeg"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Karten: © BFS, Webseite Statistik Schweiz Geografisch gehört der Kanton Zürich ...",
+        "Option A": "zum Jura.",
+        "Option B": "zur Seenplatte.",
+        "Option C": "zum Mittelland.",
+        "Option D": "zur Tössebene.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "An wie viele Kantone grenzt der Kanton Zürich?",
+        "Option A": "10",
+        "Option B": "2",
+        "Option C": "6",
+        "Option D": "8",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wie heissen die drei grössten Städte des Kantons Zürich?",
+        "Option A": "Zürich, Winterthur, Uster",
+        "Option B": "Zürich, Zug, Cham",
+        "Option C": "Zürich, Winterthur, Bülach",
+        "Option D": "Zürich, Baden, Wettingen",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welche Hügel umrahmen den Zürichsee?",
+        "Option A": "Chli Aubrig, Hörnli, Randen",
+        "Option B": "Randen, Hörnli, Albis",
+        "Option C": "Lägeren, Stierenberg, Pfannenstiel",
+        "Option D": "Uetliberg, Albis, Pfannenstiel",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "In welcher Gemeinde liegt der Flughafen Zürich?",
+        "Option A": "Zürich",
+        "Option B": "Winterthur",
+        "Option C": "Kloten",
+        "Option D": "Bülach",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welcher See liegt im Kanton Zürich?",
+        "Option A": "Hallwilersee",
+        "Option B": "Pfäffikersee",
+        "Option C": "Zugersee",
+        "Option D": "Sempachersee",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wie heisst der zweitgrösste See des Kantons Zürich?",
+        "Option A": "Walensee",
+        "Option B": "Zugersee",
+        "Option C": "Sihlsee",
+        "Option D": "Greifensee",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welcher Fluss fliesst in der Stadt Zürich in die Limmat?",
+        "Option A": "Sihl",
+        "Option B": "Aare",
+        "Option C": "Rhone",
+        "Option D": "Tessin",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welcher Fluss fliesst durch den Kanton Zürich?",
+        "Option A": "Rhone",
+        "Option B": "Inn",
+        "Option C": "Aare",
+        "Option D": "Limmat",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welcher Fluss fliesst durch Winterthur?",
+        "Option A": "Töss",
+        "Option B": "Rhein",
+        "Option C": "Limmat",
+        "Option D": "Sihl",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welches Schloss liegt im Kanton Zürich?",
+        "Option A": "Schloss Kyburg",
+        "Option B": "Château de Chillon",
+        "Option C": "Schloss Hallwyl",
+        "Option D": "Schloss Greyerz",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wie gross ist die Landwirtschaftsfläche im Kanton Zürich?",
+        "Option A": "5%",
+        "Option B": "60%",
+        "Option C": "80%",
+        "Option D": "41%",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wie viele Personen leben im Kanton Zürich (Stand 2020)?",
+        "Option A": "1.5 Millionen",
+        "Option B": "360'000",
+        "Option C": "600'000",
+        "Option D": "3.1 Millionen",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Wie heisst die Hauptstadt des Kantons Zürich?",
+        "Option A": "Uster",
+        "Option B": "Winterthur",
+        "Option C": "Wädenswil",
+        "Option D": "Zürich",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Geografie",
+        "Area": "Kanton",
+        "Question": "Welcher Kanton grenzt an den Kanton Zürich?",
+        "Option A": "Freiburg",
+        "Option B": "Thurgau",
+        "Option C": "Luzern",
+        "Option D": "Glarus",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wie heisst das traditionelle Kartenspiel der Schweiz?",
+        "Option A": "Uno",
+        "Option B": "Jass",
+        "Option C": "Poker",
+        "Option D": "Bridge",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wie heisst der grösste Schweizer Zirkus?",
+        "Option A": "Zirkus Knie",
+        "Option B": "Zirkus Busch",
+        "Option C": "Zirkus Krone",
+        "Option D": "Zirkus Roncalli",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Die Basler Fasnacht wird mit dem «Morgestraich» an einem Montag um 4 Uhr morgens angepfiffen. Was passiert dann?",
+        "Option A": "Alle Baslerinnen und Basler beginnen zu singen.",
+        "Option B": "Die Vorsitzenden der Fasnachtsgruppen halten Reden.",
+        "Option C": "Die Strassenlichter werden gelöscht und die Pfeifer und Trommler beginnen zu",
+        "Option D": "Brennende Besen werden durch die Stadt getragen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wie heisst eine traditionelle Schweizer Sportart?",
+        "Option A": "Basketball",
+        "Option B": "Eishockey",
+        "Option C": "Schwingen",
+        "Option D": "Volleyball",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wann ist der Schweizer Nationalfeiertag?",
+        "Option A": "14. Juli",
+        "Option B": "1. August",
+        "Option C": "4. Juli",
+        "Option D": "3. Oktober",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was bedeutet die Abkürzung SBB?",
+        "Option A": "Schweizerische Bundesbahnen",
+        "Option B": "Gesellschaft der schweizerischen Börse",
+        "Option C": "Zusammenschluss des Bühnenpersonals in der Schweiz",
+        "Option D": "Schweizerische Gesellschaft für Bildungsforschung",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "SBB, BLS, SOB, SZU sind Abkürzungen für Schweizer ...",
+        "Option A": "Gewerkschaften.",
+        "Option B": "Kulturvereine.",
+        "Option C": "Eisenbahngesellschaften.",
+        "Option D": "Seilbahngesellschaften.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was soll man tun, wenn die Alarm-Sirenen im Ernstfall heulen?",
+        "Option A": "nach Hause gehen",
+        "Option B": "Radio hören",
+        "Option C": "den Fernseher abstellen",
+        "Option D": "zum zentralen Platz der Gemeinde gehen",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was wird im Landesmuseum Zürich gezeigt?",
+        "Option A": "Werke des europäischen Impressionismus",
+        "Option B": "die Geschichte der Schweiz",
+        "Option C": "eine Insektensammlung",
+        "Option D": "eine Sammlung von historischen Autos",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Für welche Industrie ist die Juraregion bekannt?",
+        "Option A": "Uhrenindustrie",
+        "Option B": "Wurstproduktion",
+        "Option C": "Schuhherstellung",
+        "Option D": "Seidenmalerei",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was ist eine bäuerliche kulturelle Tradition der Schweiz?",
+        "Option A": "Didgeridoo spielen.",
+        "Option B": "Kastagnetten schlagen.",
+        "Option C": "Jodeln.",
+        "Option D": "Bembé Trommel spielen.",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was braucht man zum Jodeln?",
+        "Option A": "Holzschuhe.",
+        "Option B": "eine kleine Pfeife.",
+        "Option C": "die Hände.",
+        "Option D": "die Stimme.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wer entscheidet, welche Artikel in der Zeitung veröffentlicht werden?",
+        "Option A": "die Zeitungsredaktion",
+        "Option B": "der kantonale Verband der Journalistinnen und Journalisten",
+        "Option C": "die zentrale Medienstelle des Kantons",
+        "Option D": "die Medienpolizei",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was ist eine Schweizer Wochenzeitung (erscheint 1x pro Woche)?",
+        "Option A": "Tages-Anzeiger",
+        "Option B": "Blick",
+        "Option C": "Neue Zürcher Zeitung",
+        "Option D": "Sonntagszeitung",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wie wird die Schweiz auch bezeichnet?",
+        "Option A": "Freistaat Schweiz",
+        "Option B": "Eidgenossenschaft",
+        "Option C": "Bündnis Schweiz",
+        "Option D": "Freie Alpenrepublik",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Roger Federer ist ein bekannter Schweizer …",
+        "Option A": "Tennisspieler.",
+        "Option B": "Fussballspieler.",
+        "Option C": "Skirennfahrer.",
+        "Option D": "Filmschauspieler.",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "An was erinnert das Rütli?",
+        "Option A": "an eine prähistorische Kultstätte",
+        "Option B": "an das Bündnis der Urkantone",
+        "Option C": "an ein Schlachtfeld",
+        "Option D": "an einen Friedensvertrag",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wer ist auf der 2-Franken-Münze zu sehen?",
+        "Option A": "die lächelnde Mona Lisa",
+        "Option B": "die allegorische Frauenfigur Helvetia",
+        "Option C": "eine römische Siegerin",
+        "Option D": "eine antike Priesterin",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Die Stadt Bern ist politisch wichtig. Warum?",
+        "Option A": "Sie ist Sitz der FIFA.",
+        "Option B": "Sie ist die Hauptstadt der Schweiz.",
+        "Option C": "Sie ist der Sitz der UNO (Vereinte Nationen).",
+        "Option D": "Sie ist der Sitz des Europarats.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Als was ist die Region Basel besonders bekannt?",
+        "Option A": "als Weinland",
+        "Option B": "als Standort grosser Pharmafirmen",
+        "Option C": "als Land der Burgen und Klöster",
+        "Option D": "als Standort verschiedener internationaler Organisationen (z.B. UNO)",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welcher Kanton hat am meisten Einwohnerinnen und Einwohner?",
+        "Option A": "Waadt",
+        "Option B": "Bern",
+        "Option C": "Zürich",
+        "Option D": "St. Gallen",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wann feiert die Schweiz ihren Nationalfeiertag?",
+        "Option A": "am 4. Juli",
+        "Option B": "am 8. November",
+        "Option C": "am 1. August",
+        "Option D": "am 1. Mai",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was bedeutet die Abkürzung CH?",
+        "Option A": "Confoederatio Helvetica",
+        "Option B": "Schweizerisches Längenmass",
+        "Option C": "Christlicher Verein",
+        "Option D": "Cultura Habsburgiensia",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welchen Sport machen viele Menschen in der Schweiz im Winter?",
+        "Option A": "Skifahren",
+        "Option B": "Schwingen",
+        "Option C": "Berg-Radfahren",
+        "Option D": "Bergsee-Segeln",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welche Tradition ist in der Schweiz mit der Fasnacht verbunden?",
+        "Option A": "Fahnenschwingen",
+        "Option B": "Maskenumzüge",
+        "Option C": "Jodeln",
+        "Option D": "Bergfeuer",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welche berühmte Figur hat die Schriftstellerin Johanna Spyri erfun­ den?",
+        "Option A": "Ueli der Knecht",
+        "Option B": "Schellenursli",
+        "Option C": "Heidi",
+        "Option D": "Peter und der Wolf",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Max Frisch (1911-1991) und Friedrich Dürrenmatt (1921-1990) waren bekannte Schweizer ...",
+        "Option A": "Komponisten.",
+        "Option B": "Schriftsteller.",
+        "Option C": "Unternehmer.",
+        "Option D": "Journalisten.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Nicky Saint-Phalle, Sophie Täuber-Arp und Pipilotti Rist sind internati­ onal berühmte Schweizer ...",
+        "Option A": "Politikerinnen.",
+        "Option B": "Sportlerinnen.",
+        "Option C": "Ingenieurinnen.",
+        "Option D": "Künstlerinnen.",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welche internationale Organisation hat ihren Hauptsitz in der Schweiz?",
+        "Option A": "der internationale Strafgerichtshof",
+        "Option B": "die Organisation für Sicherheit und Zusammenarbeit in Europa (OSZE)",
+        "Option C": "der Europarat",
+        "Option D": "das Internationale Komitee vom Roten Kreuz (IKRK)",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Bei welcher internationalen Organisation ist die Schweiz seit 2002 Mitglied?",
+        "Option A": "der Europäischen Union (EU)",
+        "Option B": "dem Europäischen Wirtschaftsraum (EWR)",
+        "Option C": "der Organisation der Vereinten Nationen (UNO)",
+        "Option D": "dem Weltwährungsfonds (IWF)",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Die Schweiz ist Mitglied der Organisation für Sicherheit und Zusam­ menarbeit in Europa (OSZE). Für was setzt sie sich dort besonders ein?",
+        "Option A": "für die Friedenssicherung in Osteuropa und Zentralasien",
+        "Option B": "für die wirtschaftliche Entwicklung Indiens",
+        "Option C": "für die Förderung des Baus von Flusskraftwerken",
+        "Option D": "für die Förderung des Tourismus in Europa",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Wie ist das Verhältnis der Schweiz zur Europäischen Union (EU) gere­ gelt?",
+        "Option A": "Sie ist Mitglied der EU.",
+        "Option B": "Sie hat mit der EU die Bilateralen Verträge abgeschlossen.",
+        "Option C": "Sie hat mit allen EU-Mitgliedstaaten Einzelverträge abgeschlossen.",
+        "Option D": "Sie ist gegenüber der EU vollständig unabhängig.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welche wichtige internationale Veranstaltung findet regelmässig in der Schweiz statt?",
+        "Option A": "der jährliche Umweltgipfel der UNO",
+        "Option B": "die olympischen Winterspiele",
+        "Option C": "das Skirennen der Mitglieder des EU-Parlaments",
+        "Option D": "das Weltwirtschaftsforum (WEF) in Davos",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "In welcher Stadt hat die UNO-Menschenrechtskommission ihren Sitz?",
+        "Option A": "Neuenburg",
+        "Option B": "St. Gallen",
+        "Option C": "Genf",
+        "Option D": "Bern",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welcher internationale Sportverband hat seinen Sitz in Zürich?",
+        "Option A": "Internationaler Golfverband (IGF)",
+        "Option B": "Internationaler Skiverband (FIS)",
+        "Option C": "Weltfussballverband (FIFA)",
+        "Option D": "Internationaler Schwimmverband (FINA)",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Was kann man auf einer «Chilbi» erleben?",
+        "Option A": "eine Fahrt mit der Achterbahn",
+        "Option B": "eine Opernaufführung",
+        "Option C": "einen Fussballmatch",
+        "Option D": "einen Schwimmwettkampf",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Bund",
+        "Question": "Welchen Sport macht man in der Schweiz am häufigsten in einem Ver­ ein?",
+        "Option A": "Schwimmen",
+        "Option B": "Skifahren",
+        "Option C": "Unihockey",
+        "Option D": "Fussball",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Man sagt: Je schneller am Sechseläuten der «Böögg» (Schneemann- Puppe) auf dem Scheiterhaufen den Kopf verliert, desto ...",
+        "Option A": "kälter wird der Zürichsee im Sommer.",
+        "Option B": "schöner wird der nächste Sommer.",
+        "Option C": "mehr Kinder wird es im kommenden Jahr geben.",
+        "Option D": "besser wird die Wirtschaft im kommenden Jahr laufen.",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Wofür steht die Street Parade in Zürich?",
+        "Option A": "für Liebe, Friede, Freiheit, Grosszügigkeit und Toleranz",
+        "Option B": "für Demokratie und Menschenrechte",
+        "Option C": "für Theater und Kunst der jungen Generation",
+        "Option D": "für Volksmusik und Spektakel",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Was bietet das Zürcher Theater Spektakel immer im August?",
+        "Option A": "Theater, Tanz und Musik aus der ganzen Welt",
+        "Option B": "Jassturniere für ältere Menschen",
+        "Option C": "ein Weinfest",
+        "Option D": "die Vorführung neuer Schweizer Filme",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Was ist ein Zürcher Sportevent?",
+        "Option A": "Weltklasse Zürich",
+        "Option B": "Engadiner Skimarathon",
+        "Option C": "Swiss Indoors",
+        "Option D": "Schweizer Frauenlauf",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "In diesem Museum kann man experimentieren. In welcher Stadt ist das Technorama?",
+        "Option A": "Zürich",
+        "Option B": "Winterthur",
+        "Option C": "Aarau",
+        "Option D": "Zug",
+        "Answer": "b"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "In welchem Museum kann man alles berühren und experimentieren?",
+        "Option A": "Sammlung Reinhart «Am Römerholz»",
+        "Option B": "Fotomuseum Winterthur",
+        "Option C": "Technorama",
+        "Option D": "Villa Lindengut",
+        "Answer": "c"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Wo ist die Masoala-Halle mit einem Urwald aus Madagaskar?",
+        "Option A": "im Zoo Zürich",
+        "Option B": "im China Garten von Zürich",
+        "Option C": "im alten botanischen Garten Zürich",
+        "Option D": "im Rieterpark in Zürich",
+        "Answer": "a"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Wer spielt eine wichtige Rolle am Zürcher Sechseläuten?",
+        "Option A": "die Frauen",
+        "Option B": "die Kirchen",
+        "Option C": "die Gewerkschaften",
+        "Option D": "die Zünfte",
+        "Answer": "d"
+    },
+    {
+        "Topic": "Kultur und Alltagskultur",
+        "Area": "Kanton",
+        "Question": "Gottfried Keller (1819-1890) war ein bekannter Zürcher ...",
+        "Option A": "Erfinder.",
+        "Option B": "Schriftsteller.",
+        "Option C": "reformierter Pfarrer.",
+        "Option D": "Fabrikant.",
+        "Answer": "b"
+    }
+];
+    
+    let allQuestions = [];
+    let filteredQuestions = [];
+    let currentIndex = 0;
+    let currentQuestion = null;
+
+    // --- LOAD SAVED STATE ---
+    let savedState = JSON.parse(localStorage.getItem('einbuergerung_quiz_state')) || {
+        lastId: null,
+        wrongIds: [],
+        stats: { total: 0, right: 0, wrong: 0 }
+    };
+
+    let wrongIds = new Set(savedState.wrongIds);
+    let stats = savedState.stats;
+
+    function saveState() {
+        const stateToSave = {
+            lastId: currentQuestion ? currentQuestion.globalId : null,
+            wrongIds: Array.from(wrongIds),
+            stats: stats
+        };
+        localStorage.setItem('einbuergerung_quiz_state', JSON.stringify(stateToSave));
+    }
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('app-version').textContent = APP_VERSION;
+        initializeQuiz(quizData);
+    });
+
+    function initializeQuiz(data) {
+        allQuestions = data.map((q, index) => ({ ...q, globalId: index + 1 }));
+        filteredQuestions = [...allQuestions];
+        populateFilters();
+        
+        document.getElementById('quiz-screen').style.display = 'block';
+        
+        updateStatsUI();
+        renderWrongIds();
+
+        // Restore last question if exists
+        if (savedState.lastId) {
+            const idx = allQuestions.findIndex(q => q.globalId === savedState.lastId);
+            if (idx !== -1) {
+                loadQuestion(idx);
+                return;
+            }
+        }
+        loadQuestion(0);
+    }
+
+    // --- DROPDOWN FILTERS ---
+    function populateFilters() {
+        const topics = new Set(allQuestions.map(q => q.Topic));
+        const areas = new Set(allQuestions.map(q => q.Area));
+        const topicBox = document.getElementById('topic-dropdown');
+        topics.forEach(t => topicBox.innerHTML += `<label><input type="checkbox" value="${t}" class="filter-topic" onchange="applyFilters()"> ${t}</label>`);
+        const areaBox = document.getElementById('area-dropdown');
+        areas.forEach(a => areaBox.innerHTML += `<label><input type="checkbox" value="${a}" class="filter-area" onchange="applyFilters()"> ${a}</label>`);
+    }
+
+    function toggleDropdown(id) { document.getElementById(id).classList.toggle('show'); }
+
+    // Close dropdowns if clicking outside
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropdown-btn')) {
+            document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+        }
+    }
+
+    function applyFilters() {
+        const t = Array.from(document.querySelectorAll('.filter-topic:checked')).map(cb => cb.value);
+        const a = Array.from(document.querySelectorAll('.filter-area:checked')).map(cb => cb.value);
+        filteredQuestions = allQuestions.filter(q => (t.length === 0 || t.includes(q.Topic)) && (a.length === 0 || a.includes(q.Area)));
+        if (filteredQuestions.length === 0) { alert("Keine Fragen gefunden."); resetFilters(); } 
+        else { loadQuestion(0); }
+    }
+
+    function resetFilters() {
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        filteredQuestions = [...allQuestions];
+        loadQuestion(0);
+    }
+
+    // --- QUESTION LOGIC ---
+    function loadQuestion(index) {
+        currentIndex = index;
+        currentQuestion = filteredQuestions[currentIndex];
+        
+        // Save current view state
+        saveState();
+
+        // Reset Feedback
+        document.getElementById('feedback').style.display = 'none';
+        
+        // Setup Navigation Buttons
+        document.getElementById('prev-btn').disabled = (currentIndex === 0);
+        document.getElementById('next-btn').disabled = (currentIndex === filteredQuestions.length - 1);
+        
+        // Setup Option Buttons
+        ['a', 'b', 'c', 'd'].forEach(l => {
+            const btn = document.getElementById(`btn-${l}`);
+            btn.disabled = false;
+            btn.className = 'option-btn';
+            
+            const optionText = currentQuestion[`Option ${l.toUpperCase()}`];
+            if (optionText) {
+                btn.textContent = `${l.toUpperCase()}) ${optionText}`;
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+
+        // Setup Meta Data
+        document.getElementById('question-text').textContent = currentQuestion.Question;
+        document.getElementById('question-tags').textContent = `${currentQuestion.Topic} / ${currentQuestion.Area}`;
+        document.getElementById('question-counter').textContent = `Frage ${currentIndex + 1} von ${filteredQuestions.length}`;
+        document.getElementById('global-id').textContent = currentQuestion.globalId;
+
+        // Setup Image if applicable
+        const imgCont = document.getElementById('image-container');
+        imgCont.innerHTML = '';
+        if (currentQuestion["Needs Picture"] && currentQuestion["Picture Files"]) {
+            currentQuestion["Picture Files"].split(',').forEach(f => {
+                const img = document.createElement('img');
+                img.src = `assets/${f.trim()}`;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '400px';
+                img.style.marginBottom = '15px';
+                img.style.border = '1px solid var(--border-color)';
+                img.style.borderRadius = '5px';
+                img.style.display = 'block';
+                imgCont.appendChild(img);
+            });
+        }
+    }
+
+    function checkAnswer(user) {
+        // Lock options
+        ['a', 'b', 'c', 'd'].forEach(l => document.getElementById(`btn-${l}`).disabled = true);
+        
+        const correct = currentQuestion.Answer.toLowerCase();
+        const isCorrect = (user === correct);
+        
+        // Highlight correct answer
+        document.getElementById(`btn-${correct}`).classList.add('correct');
+        
+        const fb = document.getElementById('feedback');
+        fb.style.display = 'block';
+        
+        if (isCorrect) {
+            fb.textContent = "Korrekt!";
+            fb.className = "feedback-area correct-msg";
+            stats.right++;
+            // Remove from wrong list if it was there
+            wrongIds.delete(currentQuestion.globalId);
+        } else {
+            // Highlight wrong choice
+            document.getElementById(`btn-${user}`).classList.add('wrong');
+            fb.textContent = `Falsch. Richtige Antwort: ${currentQuestion[`Option ${correct.toUpperCase()}`]}`;
+            fb.className = "feedback-area wrong-msg";
+            stats.wrong++;
+            // Add to wrong list
+            wrongIds.add(currentQuestion.globalId);
+        }
+
+        stats.total++;
+        updateStatsUI();
+        renderWrongIds();
+        saveState();
+    }
+
+    // --- WRONG ANSWERS LOGIC ---
+    function renderWrongIds() {
+        document.getElementById('wrong-count').textContent = wrongIds.size;
+        const container = document.getElementById('wrong-pills');
+        const wrongNavContainer = document.getElementById('wrong-nav-container');
+        container.innerHTML = '';
+        
+        // Sort IDs for better presentation
+        const sortedIds = Array.from(wrongIds).sort((a, b) => a - b);
+        
+        if (sortedIds.length === 0) {
+            container.innerHTML = '<span style="color: var(--text-muted); font-weight: normal; font-size: 0.9rem;">Keine falschen Antworten!</span>';
+            wrongNavContainer.style.display = 'none'; // Hide buttons if no wrong answers
+        } else {
+            sortedIds.forEach(id => {
+                const pill = document.createElement('div');
+                pill.className = 'wrong-pill';
+                pill.textContent = `Frage ${id}`;
+                pill.onclick = () => jumpToGlobalId(id);
+                container.appendChild(pill);
+            });
+            wrongNavContainer.style.display = 'flex'; // Show buttons
+        }
+    }
+
+    // --- STATS LOGIC ---
+    function updateStatsUI() {
+        document.getElementById('stat-total').textContent = stats.total;
+        document.getElementById('stat-right').textContent = stats.right;
+        document.getElementById('stat-wrong').textContent = stats.wrong;
+        
+        const percent = stats.total > 0 ? Math.round((stats.right / stats.total) * 100) : 0;
+        document.getElementById('stat-percent').textContent = percent;
+    }
+
+    function resetStats() {
+        if(confirm("Möchten Sie Ihre Statistiken und die Liste der falschen Fragen wirklich zurücksetzen?")) {
+            stats = { total: 0, right: 0, wrong: 0 };
+            wrongIds.clear();
+            updateStatsUI();
+            renderWrongIds();
+            saveState();
+        }
+    }
+
+    // --- NAVIGATION ---
+    function prevQuestion() { 
+        if(currentIndex > 0) loadQuestion(currentIndex - 1); 
+    }
+    
+    function nextQuestion() { 
+        if(currentIndex + 1 < filteredQuestions.length) loadQuestion(currentIndex + 1); 
+    }
+    
+    function getRandomQuestion() { 
+        loadQuestion(Math.floor(Math.random() * filteredQuestions.length)); 
+    }
+    
+    function jumpToQuestion() {
+        const id = parseInt(document.getElementById('jump-input').value);
+        if (isNaN(id)) return;
+        jumpToGlobalId(id);
+        document.getElementById('jump-input').value = '';
+    }
+
+    function jumpToGlobalId(id) {
+        // Jumping clears active filters to ensure we can reach the question
+        resetFilters();
+        const idx = allQuestions.findIndex(q => q.globalId === id);
+        if(idx !== -1) {
+            loadQuestion(idx);
+        } else {
+            alert("ID nicht gefunden.");
+        }
+    }
+
+    function nextWrongQuestion() {
+        const sortedIds = Array.from(wrongIds).sort((a, b) => a - b);
+        if (sortedIds.length === 0) return;
+
+        const currentGlobalId = currentQuestion ? currentQuestion.globalId : 0;
+        
+        let nextId = sortedIds.find(id => id > currentGlobalId);
+        
+        if (nextId === undefined) {
+            nextId = sortedIds[0];
+        }
+        
+        jumpToGlobalId(nextId);
+    }
+
+    function prevWrongQuestion() {
+        const sortedIds = Array.from(wrongIds).sort((a, b) => a - b);
+        if (sortedIds.length === 0) return;
+
+        const currentGlobalId = currentQuestion ? currentQuestion.globalId : Number.MAX_SAFE_INTEGER;
+        
+        const reversedIds = [...sortedIds].reverse();
+        let prevId = reversedIds.find(id => id < currentGlobalId);
+        
+        if (prevId === undefined) {
+            prevId = reversedIds[0];
+        }
+        
+        jumpToGlobalId(prevId);
+    }
+
+    function getRandomWrongQuestion() {
+        const ids = Array.from(wrongIds);
+        if (ids.length === 0) return;
+        const randomId = ids[Math.floor(Math.random() * ids.length)];
+        jumpToGlobalId(randomId);
+    }
+</script>
+
+</body>
+</html>
